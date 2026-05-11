@@ -2,7 +2,7 @@ name: Daily Field Notes Build
 
 on:
   schedule:
-    - cron: '30 1 * * *'
+    - cron: '30 1 * * *'    # 07:00 IST
   workflow_dispatch:
 
 permissions:
@@ -27,13 +27,48 @@ jobs:
         run: python fetch.py
 
       - name: Commit and push if changed
+        id: commit
         run: |
           git config user.name "field-notes-bot"
           git config user.email "bot@users.noreply.github.com"
           git add docs/
           if git diff --staged --quiet; then
             echo "No changes to commit."
+            echo "changed=false" >> $GITHUB_OUTPUT
           else
             git commit -m "Daily build: $(date -u +'%Y-%m-%d %H:%M UTC')"
             git push
+            echo "changed=true" >> $GITHUB_OUTPUT
           fi
+
+      # ---------------------------------------------------------------------
+      # Optional: email a digest of today's items.
+      # Only runs if both MAIL_USERNAME and MAIL_PASSWORD secrets are set.
+      # MAIL_USERNAME: your Gmail address
+      # MAIL_PASSWORD: a Gmail "App Password" (not your normal password)
+      # MAIL_TO: where to send the digest (defaults to MAIL_USERNAME if unset)
+      # ---------------------------------------------------------------------
+      - name: Check if email is configured
+        id: email_check
+        run: |
+          if [ -n "${{ secrets.MAIL_USERNAME }}" ] && [ -n "${{ secrets.MAIL_PASSWORD }}" ]; then
+            echo "configured=true" >> $GITHUB_OUTPUT
+          else
+            echo "configured=false" >> $GITHUB_OUTPUT
+            echo "Email secrets not set — skipping digest. (Add MAIL_USERNAME and MAIL_PASSWORD in Settings → Secrets to enable.)"
+          fi
+
+      - name: Send daily digest email
+        if: steps.email_check.outputs.configured == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: "Field Notes — daily AI digest · ${{ github.run_number }}"
+          from: Field Notes <${{ secrets.MAIL_USERNAME }}>
+          to: ${{ secrets.MAIL_TO || secrets.MAIL_USERNAME }}
+          body: file://build_summary.txt
+          convert_markdown: false
