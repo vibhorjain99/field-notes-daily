@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0e0d">
+<title>FIELD NOTES — A Personal AI Research Almanac</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700;9..144,900&family=JetBrains+Mono:wght@300;400;500;700&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --ink: #0a0e0d; --ink-soft: #141918; --ink-line: #2a302d;
+    --paper: #f3efe3; --paper-warm: #ebe5d5; --rule: #c9c1ad; --rule-dark: #3a4240;
+    --phosphor: #7fff9c; --phosphor-dim: #4a8a5c; --amber: #f4a52a; --rust: #c14a2a;
+    --muted: #8a8472; --muted-dark: #6a7270;
+    --bg: var(--ink); --fg: var(--paper); --fg-soft: var(--paper-warm);
+    --line: var(--rule-dark); --muted-c: var(--muted-dark); --card-bg: var(--ink-soft);
+  }
+  body[data-theme="light"] {
+    --bg: var(--paper); --fg: var(--ink); --fg-soft: var(--ink-soft);
+    --line: var(--rule); --muted-c: var(--muted); --card-bg: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Fraunces', Georgia, serif; background: var(--bg); color: var(--fg);
+    line-height: 1.55; font-feature-settings: 'ss01', 'ss02', 'liga', 'kern';
+    -webkit-font-smoothing: antialiased; min-height: 100vh;
+    transition: background 0.2s, color 0.2s;
+  }
+  .grain::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 1; opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  }
+
+  /* MASTHEAD */
+  header.masthead { border-bottom: 2px solid var(--fg); padding: 24px 32px 16px; position: relative; z-index: 2; }
+  .masthead-top {
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted-c); margin-bottom: 18px; gap: 12px; flex-wrap: wrap;
+  }
+  .masthead-top .dot {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--phosphor); margin-right: 6px;
+    box-shadow: 0 0 8px var(--phosphor);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 50% { opacity: 0.4; } }
+  .icon-btn {
+    background: none; border: 1px solid var(--line); color: var(--fg);
+    padding: 6px 10px; cursor: pointer; font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    transition: all 0.15s;
+  }
+  .icon-btn:hover { border-color: var(--phosphor); color: var(--phosphor); }
+
+  h1.title {
+    font-family: 'Fraunces', serif; font-weight: 900;
+    font-size: clamp(48px, 9vw, 120px); line-height: 0.88;
+    letter-spacing: -0.04em; font-variation-settings: "opsz" 144;
+    margin-bottom: 12px;
+  }
+  h1.title em { font-style: italic; font-weight: 400; color: var(--phosphor); }
+  .subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted-c);
+    border-top: 1px solid var(--line); padding-top: 12px;
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+
+  /* BUILD STAMP — replaces the live "status bar" since this version is pre-baked */
+  .build-stamp {
+    background: var(--card-bg); border-bottom: 1px solid var(--line);
+    padding: 14px 32px; font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.1em; color: var(--muted-c);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    text-transform: uppercase; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(8px);
+  }
+  .build-stamp .stamp-time { color: var(--phosphor); }
+
+  main { max-width: 1400px; margin: 0 auto; padding: 48px 32px; position: relative; z-index: 2; }
+  section { margin-bottom: 80px; scroll-margin-top: 80px; }
+
+  .section-head {
+    display: flex; align-items: baseline; gap: 16px;
+    border-bottom: 1px solid var(--fg); padding-bottom: 8px;
+    margin-bottom: 28px; flex-wrap: wrap;
+  }
+  .section-head .num { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--phosphor); letter-spacing: 0.1em; }
+  .section-head h2 { font-family: 'Fraunces', serif; font-weight: 700; font-style: italic; font-size: clamp(28px, 4vw, 44px); letter-spacing: -0.02em; flex: 1; }
+  .section-head .meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-c); text-transform: uppercase; letter-spacing: 0.12em; }
+
+  /* FEEDS */
+  .track-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+  .pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    border: 1px solid var(--line); padding: 6px 12px;
+    cursor: pointer; background: none; color: var(--fg-soft);
+    transition: all 0.15s;
+  }
+  .pill:hover { border-color: var(--fg); }
+  .pill.active { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+  .feeds-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 32px; }
+  .feed-col { border-top: 2px solid var(--fg); padding-top: 16px; }
+  .feed-col-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .feed-col-head h3 { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; font-weight: 700; }
+  .feed-col-head .count { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-c); }
+  .feed-item { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .feed-item:last-child { border-bottom: none; }
+  .feed-item a { color: var(--fg); text-decoration: none; display: block; }
+  .feed-item h4 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 15px; line-height: 1.3; margin-bottom: 4px; transition: color 0.15s; }
+  .feed-item:hover h4 { color: var(--phosphor); }
+  .feed-item .meta-line { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-c); letter-spacing: 0.08em; }
+
+  .empty-state {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--muted-c); padding: 20px 0; letter-spacing: 0.1em;
+  }
+
+  footer {
+    border-top: 2px solid var(--fg); padding: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted-c);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    position: relative; z-index: 2;
+  }
+  footer a { color: var(--phosphor); text-decoration: none; }
+
+  .ornament {
+    text-align: center; font-family: 'JetBrains Mono', monospace;
+    color: var(--muted-c); margin: 60px 0 40px;
+    letter-spacing: 0.5em; font-size: 12px;
+  }
+
+  /* Intro card */
+  .intro-card {
+    border-left: 3px solid var(--phosphor); padding: 0 24px;
+    margin-bottom: 40px;
+  }
+  .intro-card .kicker {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--phosphor); margin-bottom: 8px;
+  }
+  .intro-card h3 { font-family: 'Fraunces', serif; font-weight: 700; font-size: clamp(24px, 3vw, 36px); line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 12px; }
+  .intro-card p { font-size: 17px; line-height: 1.55; color: var(--fg-soft); margin-bottom: 14px; max-width: 720px; }
+</style>
+</head>
+<body class="grain" data-theme="dark">
+
+<header class="masthead">
+  <div class="masthead-top">
+    <span><span class="dot"></span>AUTO-BUILT DAILY</span>
+    <button class="icon-btn" onclick="toggleTheme()" id="theme-btn">DARK</button>
+  </div>
+  <h1 class="title">Field <em>Notes</em></h1>
+  <div class="subtitle">
+    <span>A personal almanac of artificial intelligence research</span>
+    <span>Rebuilt every morning · GitHub Actions edition</span>
+  </div>
+</header>
+
+<div class="build-stamp">
+  <span>LAST BUILD: <span class="stamp-time">__GENERATED_AT__</span></span>
+  <span>NEXT BUILD: TOMORROW 01:30 UTC</span>
+  <span><a href="https://github.com/" style="color:inherit; text-decoration: underline;" id="repo-link">VIEW SOURCE</a></span>
+</div>
+
+<main>
+
+  <section>
+    <div class="intro-card">
+      <div class="kicker">Your daily AI briefing</div>
+      <h3>Three feeds. One page. Pre-fetched while you sleep.</h3>
+      <p>This page was last built at <strong>__GENERATED_AT__</strong> by a GitHub Action. It pulls the latest arXiv preprints (cs.LG, cs.CL, cs.AI), top AI stories from Hacker News, and recent posts from Google Research, Hugging Face, Anthropic, The Decoder, and Simon Willison. No client-side fetching, no API keys, no CORS proxies. Just open and read.</p>
+      <p style="font-size: 14px; color: var(--muted-c);">For the interactive curriculum, quiz, notes, and streak tracking, open the <a href="#" style="color: var(--phosphor);">full Field Notes dashboard</a> — that's the version that lives in your browser and tracks your progress.</p>
+    </div>
+  </section>
+
+  <section id="feeds">
+    <div class="section-head">
+      <span class="num">§01</span>
+      <h2>Live Wire</h2>
+      <span class="meta">Filter by your tracks</span>
+    </div>
+
+    <div class="track-pills" id="track-pills">
+      <button class="pill active" data-filter="all">All Tracks</button>
+      <button class="pill" data-filter="llm">LLMs</button>
+      <button class="pill" data-filter="multimodal">Multimodal</button>
+      <button class="pill" data-filter="agents">Agents & RL</button>
+      <button class="pill" data-filter="applied">Applied ML</button>
+    </div>
+
+    <div class="feeds-grid">
+      <div class="feed-col">
+        <div class="feed-col-head"><h3>arXiv · cs.LG / cs.CL / cs.AI</h3><span class="count" id="arxiv-count">—</span></div>
+        <div id="arxiv-feed"></div>
+      </div>
+      <div class="feed-col">
+        <div class="feed-col-head"><h3>Hacker News · AI Frontpage</h3><span class="count" id="hn-count">—</span></div>
+        <div id="hn-feed"></div>
+      </div>
+      <div class="feed-col">
+        <div class="feed-col-head"><h3>Industry Blogs</h3><span class="count" id="blog-count">—</span></div>
+        <div id="blog-feed"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span>Field Notes Daily · Built with GitHub Actions</span>
+  <span>Edit <code>fetch.py</code> to add more feeds</span>
+  <span>v1.0 · <a href="#">↑ top</a></span>
+</footer>
+
+<script>
+// The build script replaces __FEED_DATA__ with a JSON blob — that's the entire data layer.
+const DATA = __FEED_DATA__;
+
+const TRACK_NAMES = { llm: 'LLM', multimodal: 'MULTIMODAL', agents: 'AGENTS', applied: 'APPLIED' };
+
+function renderFeed(containerId, items, countId) {
+  const container = document.getElementById(containerId);
+  const filtered = activeFilter === 'all'
+    ? items
+    : items.filter(it => (it.tags || []).includes(activeFilter));
+
+  document.getElementById(countId).textContent = filtered.length + ' / ' + items.length;
+
+  if (!items.length) {
+    container.innerHTML = `<div class="empty-state">Feed unavailable at build time.</div>`;
+    return;
+  }
+  if (!filtered.length) {
+    container.innerHTML = `<div class="empty-state">No items match "${activeFilter}" — try another track.</div>`;
+    return;
+  }
+  container.innerHTML = filtered.map(it => {
+    const tagStr = (it.tags || []).length ? ' · ' + it.tags.map(t => TRACK_NAMES[t] || t.toUpperCase()).join(' · ') : '';
+    const metaStr = it.meta ? ` · ${it.meta}` : '';
+    return `
+      <div class="feed-item">
+        <a href="${it.url}" target="_blank" rel="noopener">
+          <h4>${escapeHtml(it.title)}</h4>
+          <div class="meta-line">${it.date || ''} · ${it.source}${metaStr}${tagStr}</div>
+        </a>
+      </div>
+    `;
+  }).join('');
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+let activeFilter = 'all';
+function renderAll() {
+  renderFeed('arxiv-feed', DATA.arxiv || [], 'arxiv-count');
+  renderFeed('hn-feed', DATA.hn || [], 'hn-count');
+  renderFeed('blog-feed', DATA.blogs || [], 'blog-count');
+}
+
+document.querySelectorAll('.pill').forEach(p => {
+  p.onclick = () => {
+    document.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
+    p.classList.add('active');
+    activeFilter = p.dataset.filter;
+    renderAll();
+  };
+});
+
+function toggleTheme() {
+  const cur = document.body.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.body.setAttribute('data-theme', next);
+  document.getElementById('theme-btn').textContent = next.toUpperCase();
+  try { localStorage.setItem('fn-theme', next); } catch (e) {}
+}
+try {
+  const saved = localStorage.getItem('fn-theme');
+  if (saved) {
+    document.body.setAttribute('data-theme', saved);
+    document.getElementById('theme-btn').textContent = saved.toUpperCase();
+  }
+} catch (e) {}
+
+renderAll();
+</script>
+
+</body>
+</html>
