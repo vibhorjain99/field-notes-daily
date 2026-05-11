@@ -1,0 +1,1947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0a0e0d">
+<title>FIELD NOTES — A Personal AI Research Almanac</title>
+
+<link rel="manifest" href='data:application/manifest+json,{"name":"Field Notes","short_name":"Field Notes","start_url":".","display":"standalone","background_color":"%230a0e0d","theme_color":"%230a0e0d","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 192 192%22%3E%3Crect width=%22192%22 height=%22192%22 fill=%22%230a0e0d%22/%3E%3Ctext x=%2296%22 y=%22120%22 font-family=%22monospace%22 font-size=%2272%22 font-weight=%22700%22 fill=%22%237fff9c%22 text-anchor=%22middle%22%3EFN%3C/text%3E%3C/svg%3E","sizes":"192x192","type":"image/svg+xml"}]}'>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700;9..144,900&family=JetBrains+Mono:wght@300;400;500;700&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    --ink: #0a0e0d;
+    --ink-soft: #141918;
+    --ink-line: #2a302d;
+    --paper: #f3efe3;
+    --paper-warm: #ebe5d5;
+    --rule: #c9c1ad;
+    --rule-dark: #3a4240;
+    --phosphor: #7fff9c;
+    --phosphor-dim: #4a8a5c;
+    --amber: #f4a52a;
+    --rust: #c14a2a;
+    --muted: #8a8472;
+    --muted-dark: #6a7270;
+    --bg: var(--ink);
+    --fg: var(--paper);
+    --fg-soft: var(--paper-warm);
+    --line: var(--rule-dark);
+    --muted-c: var(--muted-dark);
+    --card-bg: var(--ink-soft);
+  }
+
+  body[data-theme="light"] {
+    --bg: var(--paper);
+    --fg: var(--ink);
+    --fg-soft: var(--ink-soft);
+    --line: var(--rule);
+    --muted-c: var(--muted);
+    --card-bg: #ffffff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Fraunces', Georgia, serif;
+    background: var(--bg);
+    color: var(--fg);
+    line-height: 1.55;
+    font-feature-settings: 'ss01', 'ss02', 'liga', 'kern';
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    transition: background 0.2s, color 0.2s;
+  }
+
+  .grain::before {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 1;
+    opacity: 0.04;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  }
+  .mono { font-family: 'JetBrains Mono', monospace; }
+
+  /* COMMAND PALETTE */
+  .palette-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    z-index: 100; display: none; backdrop-filter: blur(4px);
+    align-items: flex-start; justify-content: center; padding-top: 12vh;
+  }
+  .palette-overlay.open { display: flex; }
+  .palette {
+    background: var(--card-bg); border: 1px solid var(--phosphor);
+    width: min(640px, 92vw); max-height: 70vh;
+    display: flex; flex-direction: column;
+    box-shadow: 0 0 60px rgba(127,255,156,0.15);
+  }
+  .palette input {
+    background: none; border: none; outline: none;
+    color: var(--fg); font-family: 'JetBrains Mono', monospace;
+    font-size: 16px; padding: 20px; width: 100%;
+    border-bottom: 1px solid var(--line);
+  }
+  .palette-results { overflow-y: auto; padding: 8px 0; }
+  .palette-result {
+    padding: 12px 20px; cursor: pointer;
+    display: grid; grid-template-columns: 80px 1fr auto;
+    gap: 16px; align-items: baseline;
+    border-bottom: 1px dotted var(--line);
+  }
+  .palette-result:hover, .palette-result.selected {
+    background: rgba(127,255,156,0.08);
+  }
+  .palette-result .ptype {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--phosphor);
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .palette-result .ptitle {
+    font-family: 'Fraunces', serif; font-size: 15px; line-height: 1.3;
+  }
+  .palette-result .ploc {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--muted-c);
+  }
+  .palette-hint {
+    padding: 10px 20px; border-top: 1px solid var(--line);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--muted-c); letter-spacing: 0.1em;
+    display: flex; justify-content: space-between;
+  }
+
+  /* TOAST */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--phosphor); color: var(--ink); padding: 12px 20px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    z-index: 200; opacity: 0; transition: all 0.3s;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* MASTHEAD */
+  header.masthead {
+    border-bottom: 2px solid var(--fg);
+    padding: 24px 32px 16px;
+    position: relative; z-index: 2;
+  }
+  .masthead-top {
+    display: flex; justify-content: space-between; align-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted-c);
+    margin-bottom: 18px; gap: 12px; flex-wrap: wrap;
+  }
+  .masthead-top .dot {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--phosphor); margin-right: 6px;
+    box-shadow: 0 0 8px var(--phosphor);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 50% { opacity: 0.4; } }
+
+  .masthead-actions { display: flex; gap: 8px; align-items: center; }
+  .icon-btn {
+    background: none; border: 1px solid var(--line); color: var(--fg);
+    padding: 6px 10px; cursor: pointer; font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    transition: all 0.15s;
+  }
+  .icon-btn:hover { border-color: var(--phosphor); color: var(--phosphor); }
+
+  h1.title {
+    font-family: 'Fraunces', serif; font-weight: 900;
+    font-size: clamp(48px, 9vw, 120px);
+    line-height: 0.88; letter-spacing: -0.04em;
+    font-variation-settings: "opsz" 144;
+    margin-bottom: 12px;
+  }
+  h1.title em { font-style: italic; font-weight: 400; color: var(--phosphor); }
+  .subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted-c);
+    border-top: 1px solid var(--line); padding-top: 12px;
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+  }
+
+  /* STATUS BAR — the new sticky engagement strip */
+  .status-bar {
+    background: var(--card-bg); border-bottom: 1px solid var(--line);
+    padding: 16px 32px; position: sticky; top: 0; z-index: 10;
+    backdrop-filter: blur(8px);
+    display: grid; grid-template-columns: repeat(4, 1fr) auto;
+    gap: 24px; align-items: center;
+  }
+  @media (max-width: 800px) {
+    .status-bar { grid-template-columns: 1fr 1fr; gap: 16px; padding: 12px 16px; }
+    .status-bar .toc-jump { grid-column: 1 / -1; }
+  }
+  .status-stat { display: flex; flex-direction: column; gap: 4px; }
+  .status-stat .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted-c);
+  }
+  .status-stat .value {
+    font-family: 'Fraunces', serif; font-weight: 700;
+    font-size: 22px; line-height: 1; letter-spacing: -0.01em;
+  }
+  .status-stat .value .small {
+    font-size: 13px; color: var(--muted-c); font-weight: 400;
+  }
+  .status-stat .progress-track {
+    height: 3px; background: var(--line); margin-top: 6px; overflow: hidden;
+  }
+  .status-stat .progress-fill {
+    height: 100%; background: var(--phosphor); transition: width 0.4s ease;
+  }
+  .streak-flame {
+    display: inline-block; color: var(--amber);
+    animation: flicker 2s ease-in-out infinite;
+  }
+  @keyframes flicker { 50% { opacity: 0.7; transform: scale(0.95); } }
+
+  .toc-jump {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    background: var(--bg); border: 1px solid var(--line); color: var(--fg);
+    padding: 8px 12px; outline: none; cursor: pointer;
+  }
+
+  /* MAIN */
+  main { max-width: 1400px; margin: 0 auto; padding: 48px 32px; position: relative; z-index: 2; }
+  section { margin-bottom: 80px; scroll-margin-top: 100px; }
+  .section-head {
+    display: flex; align-items: baseline; gap: 16px;
+    border-bottom: 1px solid var(--fg);
+    padding-bottom: 8px; margin-bottom: 28px; flex-wrap: wrap;
+  }
+  .section-head .num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; color: var(--phosphor); letter-spacing: 0.1em;
+  }
+  .section-head h2 {
+    font-family: 'Fraunces', serif; font-weight: 700; font-style: italic;
+    font-size: clamp(28px, 4vw, 44px); letter-spacing: -0.02em; flex: 1;
+  }
+  .section-head .meta {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; color: var(--muted-c);
+    text-transform: uppercase; letter-spacing: 0.12em;
+  }
+
+  /* TODAY'S BRIEF */
+  .brief { display: grid; grid-template-columns: 1.5fr 1fr; gap: 32px; align-items: start; }
+  @media (max-width: 800px) { .brief { grid-template-columns: 1fr; } }
+  .lead-story { border-left: 3px solid var(--phosphor); padding-left: 24px; }
+  .lead-story .kicker {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--phosphor); margin-bottom: 8px;
+  }
+  .lead-story h3 {
+    font-family: 'Fraunces', serif; font-weight: 700;
+    font-size: clamp(24px, 3vw, 36px); line-height: 1.15;
+    letter-spacing: -0.02em; margin-bottom: 12px;
+  }
+  .lead-story p { font-size: 17px; line-height: 1.55; color: var(--fg-soft); margin-bottom: 14px; }
+  .lead-story .byline {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--muted-c); letter-spacing: 0.08em; text-transform: uppercase;
+  }
+
+  .quick-hits-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--muted-c); margin-bottom: 12px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--line);
+  }
+  .hit {
+    padding: 14px 0; border-bottom: 1px dotted var(--line);
+    display: flex; gap: 12px; align-items: flex-start; cursor: pointer;
+    transition: padding-left 0.15s;
+  }
+  .hit:hover { padding-left: 8px; }
+  .hit:last-child { border-bottom: none; }
+  .hit .check {
+    width: 16px; height: 16px; border: 1px solid var(--line); flex-shrink: 0; margin-top: 4px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; background: none;
+  }
+  .hit .check:hover { border-color: var(--phosphor); }
+  .hit.done .check {
+    background: var(--phosphor); border-color: var(--phosphor);
+  }
+  .hit.done .check::after {
+    content: '✓'; color: var(--ink); font-size: 12px; font-weight: 700;
+  }
+  .hit-body { flex: 1; }
+  .hit.done .hit-body h4, .hit.done .hit-body p { opacity: 0.4; text-decoration: line-through; }
+  .hit .tag {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--phosphor); margin-bottom: 4px;
+  }
+  .hit h4 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 16px; line-height: 1.3; margin-bottom: 4px; }
+  .hit p { font-size: 13px; color: var(--muted-c); line-height: 1.4; }
+
+  /* FEEDS */
+  .feeds-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 32px;
+  }
+  .feed-col { border-top: 2px solid var(--fg); padding-top: 16px; }
+  .feed-col-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .feed-col-head h3 {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; font-weight: 700;
+  }
+  .feed-col-head .count { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-c); }
+  .feed-item {
+    padding: 12px 0; border-bottom: 1px solid var(--line);
+    display: flex; gap: 12px; align-items: flex-start;
+  }
+  .feed-item:last-child { border-bottom: none; }
+  .feed-item .save-btn {
+    background: none; border: 1px solid var(--line); color: var(--muted-c);
+    width: 22px; height: 22px; flex-shrink: 0; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1;
+    transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 2px;
+  }
+  .feed-item .save-btn:hover { color: var(--phosphor); border-color: var(--phosphor); }
+  .feed-item .save-btn.saved { background: var(--amber); border-color: var(--amber); color: var(--ink); }
+  .feed-item .content { flex: 1; }
+  .feed-item a { color: var(--fg); text-decoration: none; display: block; }
+  .feed-item h4 {
+    font-family: 'Fraunces', serif; font-weight: 500;
+    font-size: 15px; line-height: 1.3; margin-bottom: 4px;
+    transition: color 0.15s;
+  }
+  .feed-item:hover h4 { color: var(--phosphor); }
+  .feed-item .meta-line {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--muted-c); letter-spacing: 0.08em;
+  }
+  .loading {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--muted-c); padding: 20px 0; letter-spacing: 0.1em;
+  }
+  .loading::after { content: '_'; animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* TRACK FILTER PILLS */
+  .track-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+  .pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
+    border: 1px solid var(--line); padding: 6px 12px;
+    cursor: pointer; background: none; color: var(--fg-soft);
+    transition: all 0.15s;
+  }
+  .pill:hover { border-color: var(--fg); }
+  .pill.active { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+  /* CURRICULUM */
+  .curriculum { display: grid; grid-template-columns: 220px 1fr; gap: 0; }
+  @media (max-width: 800px) { .curriculum { grid-template-columns: 1fr; } }
+  .timeline-axis { border-right: 1px solid var(--line); padding-right: 20px; font-family: 'JetBrains Mono', monospace; }
+  @media (max-width: 800px) {
+    .timeline-axis { border-right: none; border-bottom: 1px solid var(--line); padding: 0 0 20px; margin-bottom: 20px; display: flex; gap: 12px; overflow-x: auto; }
+  }
+  .epoch-tab {
+    display: block; padding: 12px 8px; cursor: pointer;
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted-c); border: none; background: none;
+    text-align: left; width: 100%;
+    border-left: 2px solid transparent;
+    transition: all 0.15s; position: relative;
+  }
+  .epoch-tab:hover { color: var(--fg); }
+  .epoch-tab.active { color: var(--phosphor); border-left-color: var(--phosphor); background: rgba(127,255,156,0.04); }
+  .epoch-tab .year { display: block; font-size: 18px; font-weight: 700; color: var(--fg); margin-bottom: 2px; }
+  .epoch-tab.active .year { color: var(--phosphor); }
+  .epoch-tab .epoch-progress {
+    display: block; font-size: 9px; color: var(--phosphor-dim); margin-top: 4px;
+  }
+  @media (max-width: 800px) {
+    .epoch-tab { white-space: nowrap; border-left: none; border-bottom: 2px solid transparent; }
+    .epoch-tab.active { border-left: none; border-bottom-color: var(--phosphor); }
+  }
+  .epoch-content { padding-left: 32px; }
+  @media (max-width: 800px) { .epoch-content { padding-left: 0; } }
+  .epoch-content h3 { font-family: 'Fraunces', serif; font-weight: 700; font-style: italic; font-size: 28px; margin-bottom: 8px; letter-spacing: -0.02em; }
+  .epoch-content .epoch-summary {
+    font-family: 'Fraunces', serif; font-size: 16px; line-height: 1.6; color: var(--fg-soft);
+    margin-bottom: 28px; border-bottom: 1px solid var(--line); padding-bottom: 20px;
+  }
+
+  .resource {
+    display: grid; grid-template-columns: 24px 90px 1fr auto;
+    gap: 16px; padding: 14px 0;
+    border-bottom: 1px dotted var(--line);
+    align-items: baseline; transition: background 0.15s;
+  }
+  .resource:hover { background: rgba(127,255,156,0.03); }
+  .resource.done .body h4 a, .resource.done .body p { opacity: 0.4; }
+  .resource.done .body h4 a { text-decoration: line-through; }
+  .resource .check {
+    width: 18px; height: 18px; border: 1px solid var(--line);
+    cursor: pointer; background: none; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s; margin-top: 2px;
+  }
+  .resource .check:hover { border-color: var(--phosphor); }
+  .resource.done .check { background: var(--phosphor); border-color: var(--phosphor); }
+  .resource.done .check::after { content: '✓'; color: var(--ink); font-size: 12px; font-weight: 700; }
+  .resource .type {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--phosphor);
+  }
+  .resource .type.paper { color: var(--amber); }
+  .resource .type.video { color: var(--rust); }
+  .resource .body h4 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 17px; line-height: 1.25; margin-bottom: 4px; }
+  .resource .body h4 a { color: var(--fg); text-decoration: none; border-bottom: 1px solid transparent; }
+  .resource .body h4 a:hover { border-bottom-color: var(--phosphor); color: var(--phosphor); }
+  .resource .body p { font-size: 13px; color: var(--muted-c); line-height: 1.4; }
+  .resource .body .note-line {
+    margin-top: 8px; font-size: 13px; color: var(--amber);
+    font-style: italic; border-left: 2px solid var(--amber);
+    padding-left: 8px; display: none;
+  }
+  .resource.has-note .body .note-line { display: block; }
+  .resource .actions { display: flex; gap: 6px; align-items: center; }
+  .resource .mini-btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase;
+    background: none; border: 1px solid var(--line); color: var(--muted-c);
+    padding: 4px 8px; cursor: pointer; transition: all 0.15s;
+  }
+  .resource .mini-btn:hover { color: var(--phosphor); border-color: var(--phosphor); }
+  .resource .duration { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-c); letter-spacing: 0.08em; white-space: nowrap; }
+  @media (max-width: 600px) {
+    .resource { grid-template-columns: 24px 1fr; gap: 8px; }
+    .resource .type, .resource .duration, .resource .actions { grid-column: 2; text-align: left; }
+  }
+
+  /* DAILY PICK */
+  .daily-pick {
+    background: var(--card-bg); border: 1px solid var(--line); padding: 40px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 32px; position: relative;
+  }
+  @media (max-width: 800px) { .daily-pick { grid-template-columns: 1fr; padding: 24px; } }
+  .daily-pick::before {
+    content: 'DEEP DIVE — 60+ MINUTES'; position: absolute; top: -10px; left: 24px;
+    background: var(--bg); padding: 0 8px;
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    letter-spacing: 0.15em; color: var(--phosphor);
+  }
+  .pick-slot h4 {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted-c); margin-bottom: 12px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--line);
+  }
+  .pick-slot .pick-title {
+    font-family: 'Fraunces', serif; font-weight: 600;
+    font-size: 22px; line-height: 1.2; letter-spacing: -0.01em; margin-bottom: 8px;
+  }
+  .pick-slot .pick-title a { color: var(--fg); text-decoration: none; }
+  .pick-slot .pick-title a:hover { color: var(--phosphor); }
+  .pick-slot p { font-size: 14px; color: var(--fg-soft); line-height: 1.5; }
+  .pick-slot .pick-meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-c); margin-top: 10px; letter-spacing: 0.08em; }
+  .pick-slot .pick-actions { margin-top: 14px; display: flex; gap: 8px; }
+  .pick-slot .pick-actions button {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    background: none; border: 1px solid var(--line); color: var(--fg);
+    padding: 6px 10px; cursor: pointer; transition: all 0.15s;
+  }
+  .pick-slot .pick-actions button:hover { background: var(--phosphor); color: var(--ink); border-color: var(--phosphor); }
+  .reroll-btn {
+    margin-top: 24px; grid-column: 1 / -1;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    background: none; border: 1px solid var(--fg); color: var(--fg);
+    padding: 10px 20px; cursor: pointer; transition: all 0.15s;
+  }
+  .reroll-btn:hover { background: var(--phosphor); color: var(--ink); border-color: var(--phosphor); }
+
+  /* QUIZ */
+  .quiz-card {
+    background: var(--card-bg); border: 1px solid var(--line);
+    padding: 32px; max-width: 720px; margin: 0 auto;
+  }
+  .quiz-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--line);
+  }
+  .quiz-header .qnum { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--phosphor); letter-spacing: 0.15em; }
+  .quiz-header .qscore { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted-c); letter-spacing: 0.1em; }
+  .quiz-q { font-family: 'Fraunces', serif; font-size: 22px; line-height: 1.3; margin-bottom: 24px; font-weight: 500; }
+  .quiz-options { display: flex; flex-direction: column; gap: 8px; }
+  .quiz-option {
+    padding: 14px 18px; border: 1px solid var(--line);
+    cursor: pointer; font-family: 'Fraunces', serif; font-size: 15px;
+    background: none; color: var(--fg); text-align: left;
+    transition: all 0.15s;
+  }
+  .quiz-option:hover { border-color: var(--fg); background: rgba(127,255,156,0.04); }
+  .quiz-option.correct { background: var(--phosphor); color: var(--ink); border-color: var(--phosphor); }
+  .quiz-option.wrong { background: var(--rust); color: var(--paper); border-color: var(--rust); }
+  .quiz-option.revealed { pointer-events: none; }
+  .quiz-explanation {
+    margin-top: 20px; padding: 16px; background: rgba(127,255,156,0.06);
+    border-left: 3px solid var(--phosphor); font-size: 14px; line-height: 1.6;
+    display: none; color: var(--fg-soft);
+  }
+  .quiz-explanation.show { display: block; }
+  .quiz-explanation strong { color: var(--phosphor); font-weight: 600; }
+  .quiz-controls { margin-top: 24px; display: flex; justify-content: space-between; gap: 12px; }
+
+  /* SAVED ITEMS / NOTES VIEW */
+  .saved-view {
+    background: var(--card-bg); border: 1px solid var(--line); padding: 24px;
+  }
+  .saved-empty {
+    text-align: center; padding: 40px 20px; color: var(--muted-c);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.15em; text-transform: uppercase;
+  }
+  .saved-item {
+    padding: 14px 0; border-bottom: 1px dotted var(--line);
+    display: flex; gap: 16px; align-items: flex-start;
+  }
+  .saved-item:last-child { border-bottom: none; }
+  .saved-item .si-content { flex: 1; }
+  .saved-item h4 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 15px; margin-bottom: 4px; }
+  .saved-item h4 a { color: var(--fg); text-decoration: none; }
+  .saved-item h4 a:hover { color: var(--phosphor); }
+  .saved-item .si-meta {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--muted-c); letter-spacing: 0.08em;
+  }
+  .saved-item .si-note {
+    margin-top: 6px; font-size: 13px; color: var(--amber);
+    font-style: italic; border-left: 2px solid var(--amber); padding-left: 8px;
+  }
+  .saved-item .si-remove {
+    background: none; border: 1px solid var(--line); color: var(--muted-c);
+    font-family: 'JetBrains Mono', monospace; font-size: 9px;
+    padding: 4px 8px; cursor: pointer; letter-spacing: 0.1em;
+  }
+  .saved-item .si-remove:hover { color: var(--rust); border-color: var(--rust); }
+
+  /* NOTE MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 90;
+    display: none; align-items: center; justify-content: center; padding: 20px;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card-bg); border: 1px solid var(--phosphor);
+    width: min(560px, 100%); padding: 28px;
+  }
+  .modal h3 {
+    font-family: 'Fraunces', serif; font-size: 22px; font-style: italic;
+    margin-bottom: 4px; font-weight: 600;
+  }
+  .modal .modal-sub {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    color: var(--muted-c); letter-spacing: 0.12em; text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+  .modal textarea {
+    width: 100%; min-height: 120px; padding: 12px;
+    background: var(--bg); border: 1px solid var(--line); color: var(--fg);
+    font-family: 'Fraunces', serif; font-size: 15px; line-height: 1.5;
+    resize: vertical; outline: none;
+  }
+  .modal textarea:focus { border-color: var(--phosphor); }
+  .modal-actions { margin-top: 16px; display: flex; justify-content: flex-end; gap: 10px; }
+  .modal-actions button {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    background: none; border: 1px solid var(--fg); color: var(--fg);
+    padding: 8px 14px; cursor: pointer; transition: all 0.15s;
+  }
+  .modal-actions button.primary { background: var(--phosphor); color: var(--ink); border-color: var(--phosphor); }
+  .modal-actions button:hover { background: var(--fg); color: var(--bg); }
+  .modal-actions button.primary:hover { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+
+  /* ACCESS */
+  .access-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+  .access-card {
+    border: 1px solid var(--line); padding: 24px;
+    display: flex; flex-direction: column; gap: 12px;
+    transition: border-color 0.15s;
+  }
+  .access-card:hover { border-color: var(--phosphor); }
+  .access-card .icon { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; color: var(--phosphor); margin-bottom: 4px; }
+  .access-card h4 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 18px; }
+  .access-card p { font-size: 13px; color: var(--fg-soft); line-height: 1.5; flex: 1; }
+  .access-card button, .access-card a {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    letter-spacing: 0.15em; text-transform: uppercase;
+    background: none; border: 1px solid var(--fg); color: var(--fg);
+    padding: 8px 12px; cursor: pointer; text-align: center;
+    text-decoration: none; transition: all 0.15s; align-self: flex-start;
+  }
+  .access-card button:hover, .access-card a:hover { background: var(--fg); color: var(--bg); }
+
+  footer {
+    border-top: 2px solid var(--fg); padding: 32px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--muted-c);
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
+    position: relative; z-index: 2;
+  }
+
+  @media print {
+    .status-bar, .access-grid, .reroll-btn, .track-pills, .palette-overlay, #toast, .icon-btn, .resource .actions, .resource .check, .feed-item .save-btn { display: none !important; }
+    body { background: white !important; color: black !important; }
+    section { page-break-inside: avoid; }
+  }
+
+  .ornament {
+    text-align: center; font-family: 'JetBrains Mono', monospace;
+    color: var(--muted-c); margin: 60px 0 40px;
+    letter-spacing: 0.5em; font-size: 12px;
+  }
+
+  /* Sparkline */
+  .heatmap {
+    display: grid; grid-template-columns: repeat(28, 1fr);
+    gap: 2px; margin-top: 4px;
+  }
+  .heat-cell {
+    aspect-ratio: 1; background: var(--line); opacity: 0.4;
+    transition: all 0.2s;
+  }
+  .heat-cell[data-active="1"] { background: var(--phosphor-dim); opacity: 1; }
+  .heat-cell[data-active="2"] { background: var(--phosphor); opacity: 1; }
+  .heat-cell.today { outline: 1px solid var(--amber); outline-offset: 1px; }
+
+  /* Confetti pulse on milestones */
+  @keyframes celebrate {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); color: var(--phosphor); }
+    100% { transform: scale(1); }
+  }
+  .celebrate { animation: celebrate 0.6s ease; }
+</style>
+</head>
+<body class="grain" data-theme="dark">
+
+<!-- COMMAND PALETTE -->
+<div class="palette-overlay" id="palette-overlay">
+  <div class="palette">
+    <input type="text" id="palette-input" placeholder="Search resources, papers, talks…  (try 'rlhf', 'agent', '2024')" autocomplete="off">
+    <div class="palette-results" id="palette-results"></div>
+    <div class="palette-hint">
+      <span>↑↓ navigate · ↵ open · esc close</span>
+      <span>⌘K / ctrl+K to summon</span>
+    </div>
+  </div>
+</div>
+
+<!-- NOTE MODAL -->
+<div class="modal-overlay" id="note-modal">
+  <div class="modal">
+    <h3 id="note-title">Add a note</h3>
+    <div class="modal-sub" id="note-sub"></div>
+    <textarea id="note-text" placeholder="What stood out? What did you not understand? What do you want to remember?"></textarea>
+    <div class="modal-actions">
+      <button onclick="closeNote()">cancel</button>
+      <button class="primary" onclick="saveNote()">save note</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- MASTHEAD -->
+<header class="masthead">
+  <div class="masthead-top">
+    <span><span class="dot"></span>LIVE FEED · UPDATED <span id="now">—</span></span>
+    <div class="masthead-actions">
+      <button class="icon-btn" onclick="openPalette()">⌘K SEARCH</button>
+      <button class="icon-btn" onclick="toggleTheme()" id="theme-btn">DARK</button>
+    </div>
+  </div>
+  <h1 class="title">Field <em>Notes</em></h1>
+  <div class="subtitle">
+    <span>A personal almanac of artificial intelligence research · Curated daily</span>
+    <span>Vol. III · No. <span id="issue">—</span> · Mumbai edition</span>
+  </div>
+</header>
+
+<!-- STATUS BAR — the engagement strip -->
+<div class="status-bar">
+  <div class="status-stat">
+    <span class="label">Curriculum</span>
+    <span class="value"><span id="curr-done">0</span><span class="small">/<span id="curr-total">0</span></span></span>
+    <div class="progress-track"><div class="progress-fill" id="curr-bar" style="width: 0%"></div></div>
+  </div>
+  <div class="status-stat">
+    <span class="label">Streak</span>
+    <span class="value" id="streak-val"><span class="streak-flame">▲</span> 0<span class="small"> days</span></span>
+    <div class="heatmap" id="heatmap" style="grid-template-columns: repeat(14, 1fr); gap: 2px;"></div>
+  </div>
+  <div class="status-stat">
+    <span class="label">Notes</span>
+    <span class="value" id="note-count">0</span>
+    <span class="label" style="opacity:0.6; margin-top:6px;">saved thoughts</span>
+  </div>
+  <div class="status-stat">
+    <span class="label">Quiz score</span>
+    <span class="value" id="quiz-score">0<span class="small">%</span></span>
+    <span class="label" style="opacity:0.6; margin-top:6px;"><span id="quiz-count">0</span> answered</span>
+  </div>
+  <select class="toc-jump" id="toc-jump" onchange="jumpTo(this.value)">
+    <option value="">jump to section…</option>
+    <option value="brief">§01 Today's Brief</option>
+    <option value="feeds">§02 Live Wire</option>
+    <option value="curriculum">§03 The Catch-Up</option>
+    <option value="daily">§04 Deep Dive</option>
+    <option value="quiz">§05 Quiz Yourself</option>
+    <option value="saved">§06 Saved & Notes</option>
+    <option value="access">§07 Take It Anywhere</option>
+  </select>
+</div>
+
+<main>
+
+  <!-- 01 BRIEF -->
+  <section id="brief">
+    <div class="section-head">
+      <span class="num">§01</span>
+      <h2>Today's Brief</h2>
+      <span class="meta">Check off the five concepts as you learn them</span>
+    </div>
+
+    <div class="brief">
+      <article class="lead-story">
+        <div class="kicker">The Foundational Shift · 2022–2026</div>
+        <h3>From statistical parrots to reasoning systems: how four years rebuilt every assumption you brought from 2021.</h3>
+        <p>If you put down ML in 2021, your mental model is roughly: CNNs for vision, BERT for text, RL is mostly games. Four years later, a single architecture — the decoder-only transformer, scaled with RLHF and chain-of-thought — has eaten most of that. The question stopped being "which model" and became "which prompt, which tools, which agent loop."</p>
+        <p>This dashboard is built around five inflection points: <strong>InstructGPT (2022)</strong> aligning LLMs with human preference, <strong>ChatGPT (Nov 2022)</strong> proving the interface, <strong>GPT-4 + multimodality (2023)</strong>, <strong>reasoning models like o1/DeepSeek-R1 (late 2024–2025)</strong> trading latency for thought, and <strong>agentic systems (2025–2026)</strong> that act, not just answer.</p>
+        <p class="byline">— Start with §03 if you want the timeline. Start with §02 if you want today's headlines.</p>
+      </article>
+
+      <aside>
+        <div class="quick-hits-title">— Five concepts you need by Friday —</div>
+        <div id="concept-list"></div>
+      </aside>
+    </div>
+  </section>
+
+  <div class="ornament">· · · · ·</div>
+
+  <!-- 02 FEEDS -->
+  <section id="feeds">
+    <div class="section-head">
+      <span class="num">§02</span>
+      <h2>Live Wire</h2>
+      <span class="meta">Click ★ to save anything for later</span>
+    </div>
+
+    <div class="track-pills" id="track-pills">
+      <button class="pill active" data-filter="all">All Tracks</button>
+      <button class="pill" data-filter="llm">LLMs</button>
+      <button class="pill" data-filter="multimodal">Multimodal</button>
+      <button class="pill" data-filter="agents">Agents & RL</button>
+      <button class="pill" data-filter="applied">Applied ML</button>
+    </div>
+
+    <div class="feeds-grid">
+      <div class="feed-col">
+        <div class="feed-col-head"><h3>arXiv · cs.LG / cs.CL</h3><span class="count" id="arxiv-count">loading</span></div>
+        <div id="arxiv-feed"><div class="loading">fetching latest preprints</div></div>
+      </div>
+      <div class="feed-col">
+        <div class="feed-col-head"><h3>Hacker News · AI Frontpage</h3><span class="count" id="hn-count">loading</span></div>
+        <div id="hn-feed"><div class="loading">scanning ycombinator</div></div>
+      </div>
+      <div class="feed-col">
+        <div class="feed-col-head"><h3>Industry Blogs</h3><span class="count" id="blog-count">loading</span></div>
+        <div id="blog-feed"><div class="loading">polling research labs</div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="ornament">· · · · ·</div>
+
+  <!-- 03 CURRICULUM -->
+  <section id="curriculum">
+    <div class="section-head">
+      <span class="num">§03</span>
+      <h2>The Catch-Up</h2>
+      <span class="meta">Click ☐ to mark done · Click ✎ to note · ★ to save</span>
+    </div>
+
+    <div class="curriculum">
+      <div class="timeline-axis" id="epoch-tabs"></div>
+      <div class="epoch-content" id="epoch-content"></div>
+    </div>
+  </section>
+
+  <div class="ornament">· · · · ·</div>
+
+  <!-- 04 DAILY -->
+  <section id="daily">
+    <div class="section-head">
+      <span class="num">§04</span>
+      <h2>Today's Deep Dive</h2>
+      <span class="meta">One paper · One essay · One talk · ~60 min total</span>
+    </div>
+    <div class="daily-pick" id="daily-pick"></div>
+  </section>
+
+  <div class="ornament">· · · · ·</div>
+
+  <!-- 05 QUIZ -->
+  <section id="quiz">
+    <div class="section-head">
+      <span class="num">§05</span>
+      <h2>Quiz Yourself</h2>
+      <span class="meta">12 questions · Tests the 2022–2026 essentials · Score is saved</span>
+    </div>
+    <div class="quiz-card" id="quiz-card"></div>
+  </section>
+
+  <div class="ornament">· · · · ·</div>
+
+  <!-- 06 SAVED -->
+  <section id="saved">
+    <div class="section-head">
+      <span class="num">§06</span>
+      <h2>Saved & Notes</h2>
+      <span class="meta">Everything you bookmarked or annotated · Persists across sessions</span>
+    </div>
+    <div class="saved-view" id="saved-view"></div>
+  </section>
+
+  <div class="ornament">· · · · ·</div>
+
+  <!-- 07 ACCESS -->
+  <section id="access">
+    <div class="section-head">
+      <span class="num">§07</span>
+      <h2>Take It Anywhere</h2>
+      <span class="meta">Six ways to keep this with you</span>
+    </div>
+    <div class="access-grid">
+      <div class="access-card">
+        <div class="icon">[ + ]</div>
+        <h4>Install as app</h4>
+        <p>Mobile: Share → Add to Home Screen. Desktop: install icon in your browser's address bar. Runs offline after first load.</p>
+        <a href="#" onclick="event.preventDefault(); showToast('iOS Safari: Share → Add to Home Screen. Chrome: install icon in address bar.')">how to install</a>
+      </div>
+      <div class="access-card">
+        <div class="icon">[ ↗ ]</div>
+        <h4>Pin as tab</h4>
+        <p>Drop it as a pinned tab so it's always one click away. The Live Wire refetches every visit — no stale headlines.</p>
+        <a href="#" onclick="event.preventDefault(); showToast('Ctrl/Cmd+D to bookmark · right-click tab → Pin Tab')">how to pin</a>
+      </div>
+      <div class="access-card">
+        <div class="icon">[ ⎙ ]</div>
+        <h4>Print today's brief</h4>
+        <p>Print to PDF if you prefer paper. The stylesheet hides all the interactive bits.</p>
+        <button onclick="window.print()">print to pdf</button>
+      </div>
+      <div class="access-card">
+        <div class="icon">[ ↓ ]</div>
+        <h4>Save raw HTML</h4>
+        <p>One self-contained file. Right-click → Save As to keep an offline copy on your laptop.</p>
+        <button onclick="saveSelf()">save .html</button>
+      </div>
+      <div class="access-card">
+        <div class="icon">[ ⇆ ]</div>
+        <h4>RSS feeds</h4>
+        <p>The same sources this dashboard polls, in any RSS reader (Feedly, NetNewsWire, Reeder, Miniflux).</p>
+        <button onclick="showFeeds()">copy feed urls</button>
+      </div>
+      <div class="access-card">
+        <div class="icon">[ ⌕ ]</div>
+        <h4>Daily Claude prompt</h4>
+        <p>Don't want to open this? Paste this into Claude every morning for the same briefing.</p>
+        <button onclick="copyPrompt()">copy prompt</button>
+      </div>
+      <div class="access-card">
+        <div class="icon">[ ⤓ ]</div>
+        <h4>Export progress</h4>
+        <p>Download all your saved items, notes, and completion data as JSON. Reimport later or take to another device.</p>
+        <button onclick="exportData()">export json</button>
+      </div>
+      <div class="access-card">
+        <div class="icon">[ ↺ ]</div>
+        <h4>Reset everything</h4>
+        <p>Wipe progress, notes, streak, and saved items. Useful if you want to start fresh.</p>
+        <button onclick="resetAll()">reset all data</button>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <span>Field Notes · Personal almanac · Built <span id="built">today</span></span>
+  <span>Tracks: LLMs · Multimodal · Agents · Applied ML</span>
+  <span>v2.0 · <a href="#brief" style="color:inherit;">↑ back to top</a></span>
+</footer>
+
+<script>
+// ============================================================================
+// PERSISTENT STORAGE (window.storage with localStorage fallback for offline)
+// ============================================================================
+const storage = {
+  async get(key) {
+    if (window.storage && window.storage.get) {
+      try { const r = await window.storage.get(key); return r ? r.value : null; } catch (e) { return null; }
+    }
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  },
+  async set(key, value) {
+    if (window.storage && window.storage.set) {
+      try { await window.storage.set(key, value); return; } catch (e) {}
+    }
+    try { localStorage.setItem(key, value); } catch (e) {}
+  },
+  async delete(key) {
+    if (window.storage && window.storage.delete) {
+      try { await window.storage.delete(key); return; } catch (e) {}
+    }
+    try { localStorage.removeItem(key); } catch (e) {}
+  }
+};
+
+// Single big state blob — easier to manage than dozens of keys
+const STATE_KEY = 'fieldnotes:state';
+let state = {
+  done: {},          // resource_id → true
+  notes: {},         // resource_id → text
+  saved: [],         // [{id, title, url, source, savedAt, note}]
+  concepts: {},      // concept_id → true
+  quiz: { score: 0, count: 0, answered: {} },
+  streak: { current: 0, lastVisit: null, history: {} } // history: YYYY-MM-DD → count
+};
+
+async function loadState() {
+  const raw = await storage.get(STATE_KEY);
+  if (raw) {
+    try {
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      state = { ...state, ...parsed };
+      if (!state.streak.history) state.streak.history = {};
+      if (!state.quiz.answered) state.quiz.answered = {};
+    } catch (e) { console.warn('state parse failed', e); }
+  }
+  updateStreak();
+}
+
+async function saveState() {
+  await storage.set(STATE_KEY, JSON.stringify(state));
+}
+
+// ============================================================================
+// STREAK LOGIC
+// ============================================================================
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function daysBetween(a, b) {
+  const ms = new Date(b) - new Date(a);
+  return Math.round(ms / 86400000);
+}
+function updateStreak() {
+  const today = todayKey();
+  const last = state.streak.lastVisit;
+  if (last === today) return;
+  if (!last) {
+    state.streak.current = 1;
+  } else {
+    const gap = daysBetween(last, today);
+    if (gap === 1) state.streak.current += 1;
+    else if (gap > 1) state.streak.current = 1;
+  }
+  state.streak.lastVisit = today;
+  state.streak.history[today] = state.streak.history[today] || 0;
+  saveState();
+}
+function markActivity() {
+  const today = todayKey();
+  state.streak.history[today] = (state.streak.history[today] || 0) + 1;
+  saveState();
+  renderStatusBar();
+}
+
+// ============================================================================
+// DATA — concepts, epochs, picks, quiz
+// ============================================================================
+const concepts = [
+  { id: 'c1', tag: 'CONCEPT 01', title: 'RLHF & DPO', body: 'How raw next-token predictors became polite assistants. The whole alignment toolkit your 2021 self has never seen.' },
+  { id: 'c2', tag: 'CONCEPT 02', title: 'Chain-of-thought & reasoning models', body: 'o1, R1, Claude\'s extended thinking — why letting the model "think out loud" is now its own subfield.' },
+  { id: 'c3', tag: 'CONCEPT 03', title: 'Mixture-of-Experts (MoE)', body: 'Why DeepSeek, Mixtral, and most frontier models activate only a fraction of their parameters per token.' },
+  { id: 'c4', tag: 'CONCEPT 04', title: 'Tool use & agents', body: 'ReAct, function calling, MCP, computer-use — the loop that turned chatbots into colleagues.' },
+  { id: 'c5', tag: 'CONCEPT 05', title: 'Vision-Language Models', body: 'CLIP was the seed. GPT-4V, Llama 3.2 Vision, Qwen-VL, and native multimodal training are the tree.' }
+];
+
+const epochs = [
+  {
+    year: '2022', label: 'Alignment Era',
+    title: 'Alignment — when models started behaving',
+    summary: 'You left ML when GPT-3 was raw and a bit unhinged. This is the year three techniques — instruction tuning, RLHF, and chain-of-thought prompting — turned next-token predictors into something you could trust to follow directions. ChatGPT lands in November and the world resets.',
+    resources: [
+      { id: 'r22a', type: 'paper', title: 'Training language models to follow instructions with human feedback (InstructGPT)', author: 'Ouyang et al., OpenAI', url: 'https://arxiv.org/abs/2203.02155', duration: '90 min', note: 'The RLHF paper. Read sections 1–3 carefully; the rest is appendix.' },
+      { id: 'r22b', type: 'paper', title: 'Chain-of-Thought Prompting Elicits Reasoning in Large Language Models', author: 'Wei et al., Google', url: 'https://arxiv.org/abs/2201.11903', duration: '45 min', note: 'Short, foundational, written before the explosion. Read it.' },
+      { id: 'r22c', type: 'blog', title: 'Illustrated Reinforcement Learning from Human Feedback (RLHF)', author: 'Hugging Face', url: 'https://huggingface.co/blog/rlhf', duration: '40 min', note: 'The clearest visual explainer of the InstructGPT pipeline.' },
+      { id: 'r22d', type: 'video', title: 'State of GPT — Andrej Karpathy', author: 'Microsoft Build 2023', url: 'https://www.youtube.com/watch?v=bZQun8Y4L2A', duration: '42 min', note: 'Watch this before anything else. It collapses 18 months of progress into one talk.' }
+    ]
+  },
+  {
+    year: '2023', label: 'Multimodal & Open',
+    title: 'Multimodal arrives, open models catch up',
+    summary: 'GPT-4 is released and within months it can see. Meta drops Llama, and the open-weight ecosystem detonates. Vector databases, retrieval-augmented generation, and fine-tuning become standard plumbing. If 2022 was the alignment year, 2023 is the year the stack got built.',
+    resources: [
+      { id: 'r23a', type: 'paper', title: 'GPT-4 Technical Report', author: 'OpenAI', url: 'https://arxiv.org/abs/2303.08774', duration: '60 min', note: 'Light on architecture, heavy on capability evaluations. Read pages 1–20.' },
+      { id: 'r23b', type: 'paper', title: 'LLaMA: Open and Efficient Foundation Language Models', author: 'Touvron et al., Meta', url: 'https://arxiv.org/abs/2302.13971', duration: '50 min', note: 'The paper that made open-weight models competitive with closed labs.' },
+      { id: 'r23c', type: 'paper', title: 'Direct Preference Optimization (DPO)', author: 'Rafailov et al., Stanford', url: 'https://arxiv.org/abs/2305.18290', duration: '60 min', note: 'RLHF without the RL. Simpler, often better. Standard now.' },
+      { id: 'r23d', type: 'blog', title: 'What Are Embeddings? — Vicki Boykis', author: 'vickiboykis.com', url: 'https://vickiboykis.com/what_are_embeddings/', duration: '90 min', note: 'A book-length essay. The single best resource on embeddings + vector search.' },
+      { id: 'r23e', type: 'video', title: "Let's build GPT: from scratch, in code, spelled out", author: 'Andrej Karpathy', url: 'https://www.youtube.com/watch?v=kCc8FmEb1nY', duration: '2 hr', note: "Code along. You'll never look at a transformer the same way." }
+    ]
+  },
+  {
+    year: '2024', label: 'Scaling & Long Context',
+    title: 'Scale, long context, and the first reasoning model',
+    summary: 'Context windows balloon from 4K to 1M+ tokens (Gemini). Mixture-of-experts goes mainstream with Mixtral and DeepSeek. In September, OpenAI ships o1 — the first model that "thinks" before answering. The whole field pivots to inference-time compute.',
+    resources: [
+      { id: 'r24a', type: 'paper', title: 'Mixtral of Experts', author: 'Mistral AI', url: 'https://arxiv.org/abs/2401.04088', duration: '45 min', note: 'The cleanest introduction to MoE. Short and well-written.' },
+      { id: 'r24b', type: 'paper', title: 'Gemini 1.5: Unlocking multimodal understanding across millions of tokens of context', author: 'Google DeepMind', url: 'https://arxiv.org/abs/2403.05530', duration: '60 min', note: 'How a 1M+ token context window actually works in practice.' },
+      { id: 'r24c', type: 'blog', title: 'Learning to Reason with LLMs (o1)', author: 'OpenAI', url: 'https://openai.com/index/learning-to-reason-with-llms/', duration: '20 min', note: 'The announcement post — read it for the framing, not the details.' },
+      { id: 'r24d', type: 'paper', title: 'DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via RL', author: 'DeepSeek AI', url: 'https://arxiv.org/abs/2501.12948', duration: '90 min', note: 'The open-source answer to o1, with a transparent training recipe.' },
+      { id: 'r24e', type: 'video', title: 'Deep Dive into LLMs like ChatGPT', author: 'Andrej Karpathy (Feb 2025)', url: 'https://www.youtube.com/watch?v=7xTGNNLPyMI', duration: '3 hr 30 min', note: 'The definitive 2024-era end-to-end walkthrough. Block out an evening.' }
+    ]
+  },
+  {
+    year: '2025', label: 'Agents & Tool Use',
+    title: 'Agents stop being a demo',
+    summary: 'Tool calling matures. Anthropic ships MCP. Computer-use agents become viable. The conversation shifts from "what can the model output" to "what can the model do, autonomously, over an hour." Applied ML teams stop training models and start orchestrating them.',
+    resources: [
+      { id: 'r25a', type: 'paper', title: 'ReAct: Synergizing Reasoning and Acting in Language Models', author: 'Yao et al., Princeton + Google', url: 'https://arxiv.org/abs/2210.03629', duration: '45 min', note: 'Older paper (2022) but every agent framework today traces to it.' },
+      { id: 'r25b', type: 'blog', title: 'Building effective agents', author: 'Anthropic', url: 'https://www.anthropic.com/research/building-effective-agents', duration: '30 min', note: 'The most-shared agent guide of 2025. Workflows vs. agents, with patterns.' },
+      { id: 'r25c', type: 'blog', title: 'Model Context Protocol — Introduction', author: 'modelcontextprotocol.io', url: 'https://modelcontextprotocol.io/introduction', duration: '20 min', note: 'The open protocol for connecting agents to tools. Becoming an industry standard.' },
+      { id: 'r25d', type: 'paper', title: 'SWE-bench: Can Language Models Resolve Real-World GitHub Issues?', author: 'Jimenez et al., Princeton', url: 'https://arxiv.org/abs/2310.06770', duration: '60 min', note: 'The benchmark everyone reports on. Understand it to read coding-agent claims critically.' },
+      { id: 'r25e', type: 'video', title: 'How I use LLMs — Andrej Karpathy', author: 'YouTube (2025)', url: 'https://www.youtube.com/watch?v=EWvNQjAaOHw', duration: '2 hr 7 min', note: 'Practical, current, opinionated. The applied-ML companion to his deep dive.' }
+    ]
+  },
+  {
+    year: '2026', label: 'Now — Frontier',
+    title: 'Where the field actually is, May 2026',
+    summary: 'World models, native multimodal training, and agents that operate autonomously for days are no longer papers — they ship. This is the year of consolidation: every lab now has a reasoning model, a multimodal model, and an agent framework. Use §02 above for daily delta.',
+    resources: [
+      { id: 'r26a', type: 'blog', title: 'AI Index Report — Stanford HAI', author: 'Stanford HAI (annual)', url: 'https://hai.stanford.edu/ai-index', duration: '2 hr (skim)', note: 'The single best annual snapshot of the field. Read the executive summary; skim the charts.' },
+      { id: 'r26b', type: 'blog', title: 'Situational Awareness — Leopold Aschenbrenner', author: 'situational-awareness.ai', url: 'https://situational-awareness.ai/', duration: '4 hr', note: 'Controversial, opinionated, widely read. Read it for the prevailing AGI-timeline argument; disagree where you must.' },
+      { id: 'r26c', type: 'paper', title: 'A Survey of Large Language Model Agents', author: 'arXiv (multiple revisions)', url: 'https://arxiv.org/abs/2308.11432', duration: '90 min', note: 'Living survey. Use as a map of the agent landscape.' },
+      { id: 'r26d', type: 'video', title: 'NeurIPS 2025 Keynotes (playlist)', author: 'NeurIPS YouTube', url: 'https://www.youtube.com/@NeurIPSConf/videos', duration: 'pick 1–2', note: 'The keynotes from the most recent NeurIPS are the easiest way to sample the research frontier.' },
+      { id: 'r26e', type: 'blog', title: "Lilian Weng — Lil'Log", author: 'lilianweng.github.io', url: 'https://lilianweng.github.io/', duration: 'ongoing', note: 'Pick any post. The clearest technical writer in the field. Bookmark it.' }
+    ]
+  }
+];
+
+const allResources = epochs.flatMap(e => e.resources.map(r => ({...r, epoch: e.year})));
+const totalResources = allResources.length;
+
+const quiz = [
+  { q: 'What does RLHF stand for, and what problem does it solve?', options: [
+    { t: 'Recursive Loss Heuristic Function — speeds up gradient descent', c: false },
+    { t: 'Reinforcement Learning from Human Feedback — aligns model outputs with human preferences', c: true },
+    { t: 'Random Layer Hyperparameter Fitting — auto-tunes model architecture', c: false },
+    { t: 'Real-time Latency Hardware Filtering — a serving-side optimization', c: false }
+  ], explain: 'RLHF takes a base language model and trains a separate reward model on human preference comparisons, then fine-tunes the LLM with PPO (or now usually DPO) to maximize that reward. It is the technique that turned GPT-3 into ChatGPT.' },
+
+  { q: 'Why does a Mixture-of-Experts (MoE) model with 671B parameters sometimes run as fast as a 37B dense model?', options: [
+    { t: 'It uses 4-bit quantization on the larger experts', c: false },
+    { t: 'Only a small subset of experts is activated per token, so the active parameter count per forward pass is much smaller than the total', c: true },
+    { t: 'The experts run in parallel across GPUs, so wall-clock time is the same', c: false },
+    { t: 'It caches results from previous tokens to skip computation', c: false }
+  ], explain: 'MoE routes each token to a small number of "experts" (typically 2 of 8, or 8 of 256). The total parameter count is huge, but the FLOPs per token are governed by the *active* parameters — DeepSeek-V3 has 671B total but only 37B active per token.' },
+
+  { q: 'What is the key difference between DPO and RLHF?', options: [
+    { t: 'DPO uses synthetic data, RLHF uses human data', c: false },
+    { t: 'DPO is faster to inference, RLHF is faster to train', c: false },
+    { t: 'DPO skips training a separate reward model and skips the RL step, directly optimizing the policy from preference pairs with a simple classification-style loss', c: true },
+    { t: 'DPO works only on small models, RLHF works on large ones', c: false }
+  ], explain: 'DPO (Direct Preference Optimization) reformulates RLHF as a supervised classification problem over preference pairs. No reward model, no PPO, no RL infrastructure — just a clever loss function. It is now standard for most open-weight model fine-tuning.' },
+
+  { q: 'A "reasoning model" like o1 or DeepSeek-R1 differs from a standard LLM mainly because it…', options: [
+    { t: 'Has more parameters', c: false },
+    { t: 'Is trained to generate long internal chains of thought before producing a final answer, trading inference latency for accuracy on hard problems', c: true },
+    { t: 'Uses a different neural architecture (not a transformer)', c: false },
+    { t: 'Can browse the web during inference', c: false }
+  ], explain: 'Reasoning models are post-trained (often with RL) to produce long internal monologues — sometimes thousands of hidden tokens — before answering. This "thinking time" sharply improves performance on math, coding, and logic at the cost of latency and cost per query.' },
+
+  { q: 'What is ReAct, and why does it matter for agent design?', options: [
+    { t: 'A JavaScript framework for AI UIs', c: false },
+    { t: 'A pattern that interleaves Reasoning and Acting — the model thinks, calls a tool, observes the result, thinks again — forming the core loop of nearly every modern agent', c: true },
+    { t: 'A regularization technique that prevents catastrophic forgetting', c: false },
+    { t: 'A benchmark for measuring multi-step task completion', c: false }
+  ], explain: 'ReAct (Yao et al., 2022) is the simple but pivotal idea that an agent should produce a Thought, then an Action (tool call), then receive an Observation, then loop. Every modern agent framework — LangChain, AutoGPT, Claude\'s tool use, the OpenAI Assistants API — implements some variant of this.' },
+
+  { q: 'Retrieval-Augmented Generation (RAG) exists because…', options: [
+    { t: 'LLMs are too slow to be useful without caching', c: false },
+    { t: 'LLM weights are static and become stale; RAG injects fresh, relevant text into the context at query time, grounding the model in current or domain-specific data', c: true },
+    { t: 'It is required by privacy regulations like GDPR', c: false },
+    { t: 'It reduces the parameter count needed to run a model', c: false }
+  ], explain: 'RAG fetches relevant documents (usually via vector similarity search over embeddings) and stuffs them into the LLM\'s context window before generation. It is how you make an LLM "know" your private docs, current events, or domain-specific knowledge without fine-tuning.' },
+
+  { q: 'CLIP (2021) is foundational to today\'s multimodal models because it…', options: [
+    { t: 'Was the first transformer applied to images', c: false },
+    { t: 'Learned a joint embedding space for images and text by contrastive training on 400M (image, caption) pairs, enabling zero-shot image classification and seeding nearly all vision-language work since', c: true },
+    { t: 'Introduced the diffusion training objective', c: false },
+    { t: 'Was the first open-source model from OpenAI', c: false }
+  ], explain: 'CLIP\'s contrastive image-text training is the seed of the modern multimodal era. Stable Diffusion uses CLIP text encoders. DALL-E 2 was built on it. Every vision-language model since owes it conceptual debt.' },
+
+  { q: 'What does a "1M token context window" let you do that a "4K token context window" doesn\'t?', options: [
+    { t: 'Run inference faster', c: false },
+    { t: 'Use more parameters', c: false },
+    { t: 'Feed entire codebases, multi-hour video transcripts, or whole books into a single prompt — but at quadratic attention cost unless special architectures (sparse attention, ring attention) are used', c: true },
+    { t: 'Generate longer outputs (output length is the same thing as context)', c: false }
+  ], explain: 'Context window = input tokens the model can attend to. Output length is separate. Gemini 1.5 and Claude were first to push to 1M+ context, enabling whole-codebase analysis, long-document QA, and many-shot prompting. The cost is quadratic attention, mitigated by techniques like ring attention, sparse attention, and KV-cache offloading.' },
+
+  { q: 'The Model Context Protocol (MCP) is…', options: [
+    { t: 'A new neural architecture replacing transformers', c: false },
+    { t: 'A licensing scheme for open-weight models', c: false },
+    { t: 'An open protocol introduced by Anthropic for connecting AI assistants to external tools and data sources in a standardized way, much like LSP standardized editor-language-server communication', c: true },
+    { t: 'A benchmark for measuring agent capabilities', c: false }
+  ], explain: 'MCP is to AI agents what the Language Server Protocol was to code editors: a standard way for assistants to discover and call tools across many services. It is becoming an industry standard for agent-tool integration.' },
+
+  { q: 'SWE-bench is important because it…', options: [
+    { t: 'Measures inference latency on coding tasks', c: false },
+    { t: 'Tests whether models can resolve real GitHub issues from popular Python repos — turning a real-world software engineering task into a benchmark the entire field now reports on', c: true },
+    { t: 'Compares the quality of code completions on synthetic problems', c: false },
+    { t: 'Is the only benchmark that uses unit tests', c: false }
+  ], explain: 'Unlike HumanEval (toy problems) or MBPP, SWE-bench draws problems from actual GitHub issues with real test suites. "X% on SWE-bench Verified" is now the de-facto signal of a model\'s coding-agent capability.' },
+
+  { q: 'Why has fine-tuning become less central than it was in 2021?', options: [
+    { t: 'Modern models are too large to fine-tune', c: false },
+    { t: 'Long context windows, RAG, in-context learning, and tool use often achieve task adaptation without modifying weights — fine-tuning is now reserved for cases where prompting cannot get you there (style, domain idioms, latency), with LoRA and DPO as the dominant cheap methods', c: true },
+    { t: 'Fine-tuning was shown to harm model performance', c: false },
+    { t: 'Open-weight models cannot be legally fine-tuned', c: false }
+  ], explain: 'In 2021, fine-tuning BERT was the default. Today, the first move is prompt engineering + RAG. Fine-tuning (usually with LoRA adapters and DPO) is still essential for domain style, low-latency narrow tasks, and embedding models — but it is no longer the first hammer you reach for.' },
+
+  { q: 'What is the "scaling laws" insight, and why does it matter for the trajectory of AI in 2026?', options: [
+    { t: 'GPUs double in speed every 2 years (Moore\'s Law applied to AI)', c: false },
+    { t: 'Loss falls predictably as a power law in model size, dataset size, and compute — meaning capability gains from scale alone were forecastable, and the field bet enormous capex on continuing that curve', c: true },
+    { t: 'Bigger models always overfit', c: false },
+    { t: 'You need exactly 10× more data per 10× more parameters', c: false }
+  ], explain: 'Kaplan et al. (2020) and Chinchilla (2022) showed loss decreases as a smooth power law with compute, data, and params. This is *the* reason labs raised billions to build mega-clusters: the curve worked. The 2024–2026 debate is whether that curve is starting to bend, and whether inference-time scaling (reasoning models) is the new axis.' }
+];
+
+// ============================================================================
+// RENDER: status bar
+// ============================================================================
+function renderStatusBar() {
+  const done = Object.keys(state.done).filter(k => state.done[k]).length;
+  document.getElementById('curr-done').textContent = done;
+  document.getElementById('curr-total').textContent = totalResources;
+  document.getElementById('curr-bar').style.width = (totalResources ? (done/totalResources*100) : 0) + '%';
+
+  document.getElementById('streak-val').innerHTML = `<span class="streak-flame">▲</span> ${state.streak.current}<span class="small"> day${state.streak.current === 1 ? '' : 's'}</span>`;
+  document.getElementById('note-count').textContent = Object.keys(state.notes).filter(k => state.notes[k]).length;
+
+  const pct = state.quiz.count ? Math.round(state.quiz.score / state.quiz.count * 100) : 0;
+  document.getElementById('quiz-score').innerHTML = `${pct}<span class="small">%</span>`;
+  document.getElementById('quiz-count').textContent = state.quiz.count;
+
+  // Heatmap — last 14 days
+  const heat = document.getElementById('heatmap');
+  heat.innerHTML = '';
+  const today = todayKey();
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const count = state.streak.history[key] || 0;
+    const lvl = count >= 3 ? 2 : count >= 1 ? 1 : 0;
+    const cell = document.createElement('div');
+    cell.className = 'heat-cell' + (key === today ? ' today' : '');
+    cell.dataset.active = lvl;
+    cell.title = `${key}: ${count} action${count===1?'':'s'}`;
+    heat.appendChild(cell);
+  }
+}
+
+// ============================================================================
+// RENDER: concepts
+// ============================================================================
+function renderConcepts() {
+  const list = document.getElementById('concept-list');
+  list.innerHTML = concepts.map(c => `
+    <div class="hit ${state.concepts[c.id] ? 'done' : ''}" data-cid="${c.id}">
+      <button class="check" aria-label="Mark concept done"></button>
+      <div class="hit-body">
+        <div class="tag">${c.tag}</div>
+        <h4>${c.title}</h4>
+        <p>${c.body}</p>
+      </div>
+    </div>
+  `).join('');
+  list.querySelectorAll('.hit').forEach(el => {
+    el.onclick = () => {
+      const cid = el.dataset.cid;
+      state.concepts[cid] = !state.concepts[cid];
+      el.classList.toggle('done', state.concepts[cid]);
+      saveState();
+      markActivity();
+      if (state.concepts[cid]) showToast(`✓ ${concepts.find(c=>c.id===cid).title}`);
+    };
+  });
+}
+
+// ============================================================================
+// RENDER: curriculum
+// ============================================================================
+let activeEpoch = epochs.length - 1;
+
+function renderEpochTabs() {
+  const tabs = document.getElementById('epoch-tabs');
+  tabs.innerHTML = '';
+  epochs.forEach((e, i) => {
+    const total = e.resources.length;
+    const done = e.resources.filter(r => state.done[r.id]).length;
+    const btn = document.createElement('button');
+    btn.className = 'epoch-tab' + (i === activeEpoch ? ' active' : '');
+    btn.innerHTML = `<span class="year">${e.year}</span>${e.label}<span class="epoch-progress">${done}/${total}</span>`;
+    btn.onclick = () => { activeEpoch = i; renderEpochTabs(); renderEpoch(); };
+    tabs.appendChild(btn);
+  });
+}
+
+function renderEpoch() {
+  const e = epochs[activeEpoch];
+  const typeLabels = { paper: 'paper', blog: 'essay', video: 'talk' };
+  const content = document.getElementById('epoch-content');
+  content.innerHTML = `
+    <h3>${e.title}</h3>
+    <p class="epoch-summary">${e.summary}</p>
+    <div class="resource-list">
+      ${e.resources.map(r => {
+        const isDone = !!state.done[r.id];
+        const hasNote = !!state.notes[r.id];
+        const isSaved = state.saved.some(s => s.id === r.id);
+        return `
+        <div class="resource ${isDone ? 'done' : ''} ${hasNote ? 'has-note' : ''}" data-rid="${r.id}">
+          <button class="check" aria-label="Mark done"></button>
+          <span class="type ${r.type}">${typeLabels[r.type] || r.type}</span>
+          <div class="body">
+            <h4><a href="${r.url}" target="_blank" rel="noopener" onclick="markActivity()">${r.title}</a></h4>
+            <p>${r.author} — ${r.note}</p>
+            <div class="note-line">"${hasNote ? state.notes[r.id].replace(/</g, '&lt;') : ''}"</div>
+          </div>
+          <div class="actions">
+            <button class="mini-btn note-btn" title="Add note">✎</button>
+            <button class="mini-btn save-btn ${isSaved ? 'saved' : ''}" title="Save for later">${isSaved ? '★' : '☆'}</button>
+            <span class="duration">${r.duration}</span>
+          </div>
+        </div>
+      `;}).join('')}
+    </div>
+  `;
+
+  content.querySelectorAll('.resource .check').forEach(btn => {
+    btn.onclick = (ev) => {
+      ev.stopPropagation();
+      const row = btn.closest('.resource');
+      const rid = row.dataset.rid;
+      state.done[rid] = !state.done[rid];
+      row.classList.toggle('done', state.done[rid]);
+      saveState();
+      markActivity();
+      renderStatusBar();
+      renderEpochTabs();
+      if (state.done[rid]) {
+        const r = allResources.find(x => x.id === rid);
+        showToast(`✓ ${r.title.slice(0, 50)}${r.title.length > 50 ? '…' : ''}`);
+        // celebrate milestones
+        const done = Object.keys(state.done).filter(k => state.done[k]).length;
+        if ([1,5,10,15,20].includes(done)) {
+          document.getElementById('curr-done').classList.add('celebrate');
+          setTimeout(() => document.getElementById('curr-done').classList.remove('celebrate'), 700);
+          showToast(`★ ${done} RESOURCES COMPLETED`);
+        }
+      }
+    };
+  });
+
+  content.querySelectorAll('.note-btn').forEach(btn => {
+    btn.onclick = (ev) => {
+      ev.stopPropagation();
+      const row = btn.closest('.resource');
+      const rid = row.dataset.rid;
+      const r = allResources.find(x => x.id === rid);
+      openNote(rid, r.title);
+    };
+  });
+
+  content.querySelectorAll('.save-btn').forEach(btn => {
+    btn.onclick = (ev) => {
+      ev.stopPropagation();
+      const row = btn.closest('.resource');
+      const rid = row.dataset.rid;
+      toggleSave(rid);
+    };
+  });
+}
+
+// ============================================================================
+// NOTES
+// ============================================================================
+let currentNoteId = null;
+function openNote(id, title) {
+  currentNoteId = id;
+  document.getElementById('note-title').textContent = 'Note on:';
+  document.getElementById('note-sub').textContent = title;
+  document.getElementById('note-text').value = state.notes[id] || '';
+  document.getElementById('note-modal').classList.add('open');
+  setTimeout(() => document.getElementById('note-text').focus(), 50);
+}
+function closeNote() {
+  document.getElementById('note-modal').classList.remove('open');
+  currentNoteId = null;
+}
+function saveNote() {
+  if (!currentNoteId) return;
+  const text = document.getElementById('note-text').value.trim();
+  if (text) state.notes[currentNoteId] = text;
+  else delete state.notes[currentNoteId];
+  saveState();
+  markActivity();
+  renderEpoch();
+  renderSaved();
+  renderStatusBar();
+  showToast(text ? '✓ NOTE SAVED' : '✓ NOTE DELETED');
+  closeNote();
+}
+
+// ============================================================================
+// SAVE / BOOKMARK
+// ============================================================================
+function toggleSave(rid, externalItem) {
+  let item;
+  if (externalItem) item = externalItem;
+  else {
+    const r = allResources.find(x => x.id === rid);
+    if (!r) return;
+    item = { id: rid, title: r.title, url: r.url, source: `Curriculum · ${r.epoch}` };
+  }
+  const existing = state.saved.findIndex(s => s.id === item.id);
+  if (existing >= 0) {
+    state.saved.splice(existing, 1);
+    showToast('☆ REMOVED FROM SAVED');
+  } else {
+    state.saved.unshift({ ...item, savedAt: new Date().toISOString() });
+    showToast('★ SAVED FOR LATER');
+  }
+  saveState();
+  markActivity();
+  renderEpoch();
+  renderFeeds();
+  renderSaved();
+}
+
+function renderSaved() {
+  const view = document.getElementById('saved-view');
+  if (!state.saved.length) {
+    view.innerHTML = `<div class="saved-empty">Nothing saved yet. Click ☆ on any feed item or curriculum resource to bookmark it here.</div>`;
+    return;
+  }
+  view.innerHTML = state.saved.map(s => {
+    const note = state.notes[s.id];
+    return `
+      <div class="saved-item">
+        <div class="si-content">
+          <h4><a href="${s.url}" target="_blank" rel="noopener">${s.title}</a></h4>
+          <div class="si-meta">${s.source} · saved ${new Date(s.savedAt).toLocaleDateString('en-GB', {day:'2-digit', month:'short'})}</div>
+          ${note ? `<div class="si-note">"${note.replace(/</g, '&lt;')}"</div>` : ''}
+        </div>
+        <button class="si-remove" onclick="removeSaved('${s.id}')">remove</button>
+      </div>
+    `;
+  }).join('');
+}
+
+function removeSaved(id) {
+  state.saved = state.saved.filter(s => s.id !== id);
+  saveState();
+  renderSaved();
+  renderFeeds();
+  renderEpoch();
+  showToast('REMOVED');
+}
+
+// ============================================================================
+// DAILY PICK
+// ============================================================================
+const now = new Date();
+const startOfYear = new Date(now.getFullYear(), 0, 0);
+const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+
+const pickPaper = [
+  { id: 'pp1', title: 'Attention Is All You Need', author: 'Vaswani et al. (the transformer paper — re-read with 2026 eyes)', url: 'https://arxiv.org/abs/1706.03762', meta: '15 pages · re-orient yourself' },
+  { id: 'pp2', title: 'DeepSeek-R1 Technical Report', author: 'DeepSeek AI', url: 'https://arxiv.org/abs/2501.12948', meta: 'reasoning models · 50 pages' },
+  { id: 'pp3', title: 'The Llama 3 Herd of Models', author: 'Meta AI', url: 'https://arxiv.org/abs/2407.21783', meta: 'training pipeline · 70 pages, skim' },
+  { id: 'pp4', title: 'Direct Preference Optimization', author: 'Rafailov et al.', url: 'https://arxiv.org/abs/2305.18290', meta: 'alignment · 30 pages' },
+  { id: 'pp5', title: 'CLIP: Learning Transferable Visual Models From Natural Language Supervision', author: 'Radford et al., OpenAI', url: 'https://arxiv.org/abs/2103.00020', meta: 'multimodal foundation · 27 pages' },
+  { id: 'pp6', title: 'Sparks of Artificial General Intelligence: Early experiments with GPT-4', author: 'Bubeck et al., Microsoft Research', url: 'https://arxiv.org/abs/2303.12712', meta: 'GPT-4 capabilities · skim chapters' },
+  { id: 'pp7', title: 'Mixtral of Experts', author: 'Mistral AI', url: 'https://arxiv.org/abs/2401.04088', meta: 'MoE · 13 pages, fast read' }
+];
+const pickEssay = [
+  { id: 'pe1', title: 'The Bitter Lesson', author: 'Rich Sutton (2019, but the foundational text)', url: 'http://www.incompleteideas.net/IncIdeas/BitterLesson.html', meta: '5 min · the most-cited essay in the field' },
+  { id: 'pe2', title: 'Building effective agents', author: 'Anthropic', url: 'https://www.anthropic.com/research/building-effective-agents', meta: '30 min · agent patterns' },
+  { id: 'pe3', title: 'A Visual Guide to Mixture of Experts (MoE)', author: 'Maarten Grootendorst', url: 'https://newsletter.maartengrootendorst.com/p/a-visual-guide-to-mixture-of-experts', meta: '20 min · MoE visualized' },
+  { id: 'pe4', title: 'GPU Glossary', author: 'Modal Labs', url: 'https://modal.com/gpu-glossary', meta: '45 min · the GPU you should understand by now' },
+  { id: 'pe5', title: 'Simon Willison\'s blog', author: 'Simon Willison', url: 'https://simonwillison.net/', meta: 'open-ended · the best LLM-watcher blog in 2026' },
+  { id: 'pe6', title: 'The State of AI Report', author: 'Nathan Benaich & Air Street', url: 'https://www.stateof.ai/', meta: '1 hr · slides, skim them' },
+  { id: 'pe7', title: 'Prompt Engineering Guide', author: 'DAIR.AI', url: 'https://www.promptingguide.ai/', meta: '1–2 hr · the canonical reference' }
+];
+const pickTalk = [
+  { id: 'pt1', title: 'Deep Dive into LLMs like ChatGPT', author: 'Andrej Karpathy', url: 'https://www.youtube.com/watch?v=7xTGNNLPyMI', meta: '3 hr 30 min · block out an evening' },
+  { id: 'pt2', title: "Let's build GPT: from scratch, in code", author: 'Andrej Karpathy', url: 'https://www.youtube.com/watch?v=kCc8FmEb1nY', meta: '2 hr · code along' },
+  { id: 'pt3', title: 'State of GPT', author: 'Andrej Karpathy (Microsoft Build 2023)', url: 'https://www.youtube.com/watch?v=bZQun8Y4L2A', meta: '42 min · the orientation talk' },
+  { id: 'pt4', title: 'How I use LLMs', author: 'Andrej Karpathy (2025)', url: 'https://www.youtube.com/watch?v=EWvNQjAaOHw', meta: '2 hr 7 min · practical, current' },
+  { id: 'pt5', title: 'The Last 6 Decades of AI — and What Comes Next', author: 'Ray Kurzweil (TED)', url: 'https://www.ted.com/talks/ray_kurzweil_the_last_6_decades_of_ai_and_what_comes_next', meta: '15 min · zoomed out' },
+  { id: 'pt6', title: 'NeurIPS Test of Time talks', author: 'Conference YouTube channels', url: 'https://www.youtube.com/@NeurIPSConf/videos', meta: 'varies · pick one' }
+];
+
+let pickOffset = 0;
+function renderDailyPick() {
+  const seed = pickOffset;
+  const p = pickPaper[(dayOfYear + seed) % pickPaper.length];
+  const e = pickEssay[(dayOfYear + seed + 2) % pickEssay.length];
+  const t = pickTalk[(dayOfYear + seed + 4) % pickTalk.length];
+  document.getElementById('daily-pick').innerHTML = `
+    <div class="pick-slot">
+      <h4>One Paper</h4>
+      <div class="pick-title"><a href="${p.url}" target="_blank" rel="noopener" onclick="markActivity()">${p.title}</a></div>
+      <p>${p.author}</p>
+      <div class="pick-meta">${p.meta}</div>
+      <div class="pick-actions">
+        <button onclick="toggleSave('${p.id}', ${JSON.stringify({...p, source:'Daily Pick · Paper'}).replace(/"/g,'&quot;')})">★ save</button>
+      </div>
+    </div>
+    <div class="pick-slot">
+      <h4>One Essay</h4>
+      <div class="pick-title"><a href="${e.url}" target="_blank" rel="noopener" onclick="markActivity()">${e.title}</a></div>
+      <p>${e.author}</p>
+      <div class="pick-meta">${e.meta}</div>
+      <div class="pick-actions">
+        <button onclick="toggleSave('${e.id}', ${JSON.stringify({...e, source:'Daily Pick · Essay'}).replace(/"/g,'&quot;')})">★ save</button>
+      </div>
+    </div>
+    <div class="pick-slot">
+      <h4>One Talk</h4>
+      <div class="pick-title"><a href="${t.url}" target="_blank" rel="noopener" onclick="markActivity()">${t.title}</a></div>
+      <p>${t.author}</p>
+      <div class="pick-meta">${t.meta}</div>
+      <div class="pick-actions">
+        <button onclick="toggleSave('${t.id}', ${JSON.stringify({...t, source:'Daily Pick · Talk'}).replace(/"/g,'&quot;')})">★ save</button>
+      </div>
+    </div>
+    <button class="reroll-btn" onclick="pickOffset++; renderDailyPick();">↻ Re-roll today's pick</button>
+  `;
+}
+
+// ============================================================================
+// QUIZ
+// ============================================================================
+let quizIdx = 0;
+
+function pickQuizQuestion() {
+  // Prefer unanswered questions
+  const unanswered = quiz.map((_, i) => i).filter(i => !state.quiz.answered[i]);
+  if (unanswered.length) quizIdx = unanswered[Math.floor(Math.random() * unanswered.length)];
+  else quizIdx = Math.floor(Math.random() * quiz.length);
+}
+
+function renderQuiz() {
+  const q = quiz[quizIdx];
+  const previouslyAnswered = state.quiz.answered[quizIdx];
+  // Stable shuffle per question (so the right answer isn't always B)
+  const shuffled = q.options.map((o, i) => ({...o, origIdx: i})).sort((a,b) => ((quizIdx + 7) * (a.origIdx + 3)) % 5 - ((quizIdx + 7) * (b.origIdx + 3)) % 5);
+
+  const pct = state.quiz.count ? Math.round(state.quiz.score / state.quiz.count * 100) : 0;
+  document.getElementById('quiz-card').innerHTML = `
+    <div class="quiz-header">
+      <span class="qnum">QUESTION ${quizIdx + 1} / ${quiz.length}${previouslyAnswered ? ' · ALREADY ANSWERED' : ''}</span>
+      <span class="qscore">SCORE: ${state.quiz.score}/${state.quiz.count} (${pct}%)</span>
+    </div>
+    <div class="quiz-q">${q.q}</div>
+    <div class="quiz-options" id="quiz-options">
+      ${shuffled.map((o, i) => `<button class="quiz-option" data-correct="${o.c}" data-orig="${o.origIdx}">${o.t}</button>`).join('')}
+    </div>
+    <div class="quiz-explanation" id="quiz-explanation"><strong>Why:</strong> ${q.explain}</div>
+    <div class="quiz-controls">
+      <button class="reroll-btn" style="margin:0;" onclick="prevQuestion()">← previous</button>
+      <button class="reroll-btn" style="margin:0;" onclick="nextQuestion()">next question →</button>
+    </div>
+  `;
+
+  document.querySelectorAll('#quiz-options .quiz-option').forEach(btn => {
+    btn.onclick = () => {
+      const opts = document.querySelectorAll('#quiz-options .quiz-option');
+      opts.forEach(o => o.classList.add('revealed'));
+      const correctEl = Array.from(opts).find(o => o.dataset.correct === 'true');
+      if (btn.dataset.correct === 'true') {
+        btn.classList.add('correct');
+        if (!previouslyAnswered) {
+          state.quiz.score += 1;
+          showToast('✓ CORRECT');
+        }
+      } else {
+        btn.classList.add('wrong');
+        correctEl.classList.add('correct');
+        if (!previouslyAnswered) showToast('✗ NOT QUITE');
+      }
+      if (!previouslyAnswered) {
+        state.quiz.count += 1;
+        state.quiz.answered[quizIdx] = (btn.dataset.correct === 'true') ? 'correct' : 'wrong';
+        saveState();
+        markActivity();
+        renderStatusBar();
+      }
+      document.getElementById('quiz-explanation').classList.add('show');
+    };
+  });
+}
+
+function nextQuestion() { quizIdx = (quizIdx + 1) % quiz.length; renderQuiz(); }
+function prevQuestion() { quizIdx = (quizIdx - 1 + quiz.length) % quiz.length; renderQuiz(); }
+
+// ============================================================================
+// FEEDS
+// ============================================================================
+function tagItem(text) {
+  const t = (text || '').toLowerCase();
+  const tags = [];
+  if (/\b(llm|gpt|claude|gemini|llama|mistral|qwen|deepseek|language model|transformer|fine-tun|rlhf|dpo|moe|mixture-of-experts|reasoning)\b/.test(t)) tags.push('llm');
+  if (/\b(vision|image|video|multimodal|clip|vlm|vqa|diffusion|stable diffusion|sora|midjourney|3d|world model)\b/.test(t)) tags.push('multimodal');
+  if (/\b(agent|tool use|reinforcement|rl |reward|policy|browser|autonomous|mcp|computer-use|orchestrat)\b/.test(t)) tags.push('agents');
+  if (/\b(deploy|production|inference|serving|latency|quantiz|throughput|enterprise|industry|benchmark|eval|cost|gpu)\b/.test(t)) tags.push('applied');
+  return tags;
+}
+
+let feedItems = { arxiv: [], hn: [], blog: [] };
+
+async function loadArxiv() {
+  const container = document.getElementById('arxiv-feed');
+  const url = 'https://export.arxiv.org/api/query?search_query=cat:cs.LG+OR+cat:cs.CL+OR+cat:cs.AI&sortBy=submittedDate&sortOrder=descending&max_results=20';
+  try {
+    const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(url);
+    const res = await fetch(proxy);
+    const text = await res.text();
+    const xml = new DOMParser().parseFromString(text, 'application/xml');
+    const entries = Array.from(xml.querySelectorAll('entry')).slice(0, 15);
+    if (!entries.length) throw new Error('no entries');
+    feedItems.arxiv = entries.map(en => {
+      const title = en.querySelector('title')?.textContent.replace(/\s+/g, ' ').trim() || '';
+      const link = en.querySelector('id')?.textContent || '#';
+      const summary = (en.querySelector('summary')?.textContent || '').replace(/\s+/g, ' ').trim();
+      const date = en.querySelector('published')?.textContent.slice(0, 10) || '';
+      const id = 'arxiv:' + (link.split('/').pop() || title.slice(0,20));
+      return { id, title, url: link, summary, date, tags: tagItem(title + ' ' + summary), source: 'arXiv' };
+    });
+    document.getElementById('arxiv-count').textContent = feedItems.arxiv.length + ' preprints';
+  } catch (err) {
+    feedItems.arxiv = [];
+    container.innerHTML = `<div class="feed-item"><div class="content"><p style="font-size:13px;color:var(--muted-c)">Feed temporarily unavailable. <a href="https://arxiv.org/list/cs.LG/recent" target="_blank" style="color:var(--phosphor)">Open arXiv →</a></p></div></div>`;
+    document.getElementById('arxiv-count').textContent = 'offline';
+  }
+  renderFeeds();
+}
+
+async function loadHN() {
+  const container = document.getElementById('hn-feed');
+  try {
+    const queries = ['AI', 'LLM', 'GPT', 'Claude', 'agent'];
+    const all = [];
+    for (const q of queries) {
+      const res = await fetch(`https://hn.algolia.com/api/v1/search?query=${q}&tags=story&hitsPerPage=8`);
+      const j = await res.json();
+      all.push(...j.hits);
+    }
+    const seen = new Set();
+    const uniq = all.filter(h => !seen.has(h.objectID) && seen.add(h.objectID))
+                   .sort((a,b) => (b.points||0) - (a.points||0))
+                   .slice(0, 15);
+    feedItems.hn = uniq.map(h => ({
+      id: 'hn:' + h.objectID,
+      title: h.title || '',
+      url: h.url || `https://news.ycombinator.com/item?id=${h.objectID}`,
+      date: new Date(h.created_at).toISOString().slice(0,10),
+      meta: `${h.points||0} pts · ${h.num_comments||0} comments`,
+      tags: tagItem(h.title || ''),
+      source: 'Hacker News'
+    }));
+    document.getElementById('hn-count').textContent = feedItems.hn.length + ' stories';
+  } catch (err) {
+    feedItems.hn = [];
+    container.innerHTML = `<div class="feed-item"><div class="content"><p style="font-size:13px;color:var(--muted-c)">Feed temporarily unavailable. <a href="https://news.ycombinator.com" target="_blank" style="color:var(--phosphor)">Open HN →</a></p></div></div>`;
+    document.getElementById('hn-count').textContent = 'offline';
+  }
+  renderFeeds();
+}
+
+async function loadBlogs() {
+  const container = document.getElementById('blog-feed');
+  const sources = [
+    { name: 'Google Research', url: 'https://research.google/blog/rss/' },
+    { name: 'The Decoder', url: 'https://the-decoder.com/feed/' },
+    { name: 'Hugging Face', url: 'https://huggingface.co/blog/feed.xml' },
+    { name: 'Simon Willison', url: 'https://simonwillison.net/atom/everything/' }
+  ];
+  try {
+    const results = await Promise.allSettled(sources.map(async s => {
+      const proxy = 'https://api.allorigins.win/raw?url=' + encodeURIComponent(s.url);
+      const res = await fetch(proxy);
+      const txt = await res.text();
+      const xml = new DOMParser().parseFromString(txt, 'application/xml');
+      let items = Array.from(xml.querySelectorAll('item'));
+      if (!items.length) items = Array.from(xml.querySelectorAll('entry'));
+      return items.slice(0, 4).map(it => {
+        const title = it.querySelector('title')?.textContent.trim() || '';
+        const link = it.querySelector('link')?.getAttribute('href') || it.querySelector('link')?.textContent || '#';
+        const pub = it.querySelector('pubDate')?.textContent || it.querySelector('updated')?.textContent || it.querySelector('published')?.textContent || '';
+        const date = pub ? new Date(pub).toISOString().slice(0,10) : '';
+        const id = 'blog:' + s.name + ':' + (link.slice(-40));
+        return { id, title, url: link, date, source: s.name, tags: tagItem(title) };
+      });
+    }));
+    const flat = results.filter(r => r.status === 'fulfilled').flatMap(r => r.value)
+                        .sort((a,b) => (b.date || '').localeCompare(a.date || ''))
+                        .slice(0, 15);
+    feedItems.blog = flat;
+    document.getElementById('blog-count').textContent = flat.length + ' posts';
+  } catch (err) {
+    feedItems.blog = [];
+    container.innerHTML = `<div class="feed-item"><div class="content"><p style="font-size:13px;color:var(--muted-c)">Feed temporarily unavailable.</p></div></div>`;
+    document.getElementById('blog-count').textContent = 'offline';
+  }
+  renderFeeds();
+}
+
+function renderFeeds() {
+  const filter = activeFilter;
+  const buckets = [
+    { key: 'arxiv', el: 'arxiv-feed', items: feedItems.arxiv },
+    { key: 'hn', el: 'hn-feed', items: feedItems.hn },
+    { key: 'blog', el: 'blog-feed', items: feedItems.blog }
+  ];
+  buckets.forEach(b => {
+    const container = document.getElementById(b.el);
+    if (!b.items.length) return; // keep existing loading or error message
+    const filtered = b.items.filter(it => filter === 'all' || it.tags.includes(filter));
+    if (!filtered.length) {
+      container.innerHTML = `<div class="feed-item"><div class="content"><p style="font-size:12px;color:var(--muted-c);font-family:monospace">No items match filter "${filter}" — try another track.</p></div></div>`;
+      return;
+    }
+    container.innerHTML = filtered.map(it => {
+      const isSaved = state.saved.some(s => s.id === it.id);
+      const tagStr = it.tags.length ? ' · ' + it.tags.map(t=>t.toUpperCase()).join(' · ') : '';
+      const metaStr = it.meta ? ` · ${it.meta}` : '';
+      const itemJson = JSON.stringify(it).replace(/"/g, '&quot;');
+      return `
+        <div class="feed-item">
+          <button class="save-btn ${isSaved ? 'saved' : ''}" onclick="toggleSave('${it.id}', ${itemJson})" title="${isSaved ? 'Saved' : 'Save'}">${isSaved ? '★' : '☆'}</button>
+          <div class="content">
+            <a href="${it.url}" target="_blank" rel="noopener" onclick="markActivity()">
+              <h4>${it.title}</h4>
+              <div class="meta-line">${it.date} · ${it.source}${metaStr}${tagStr}</div>
+            </a>
+          </div>
+        </div>
+      `;
+    }).join('');
+  });
+}
+
+// ============================================================================
+// FILTER
+// ============================================================================
+let activeFilter = 'all';
+function bindFilters() {
+  document.querySelectorAll('.pill').forEach(p => {
+    p.onclick = () => {
+      document.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
+      p.classList.add('active');
+      activeFilter = p.dataset.filter;
+      renderFeeds();
+    };
+  });
+}
+
+// ============================================================================
+// COMMAND PALETTE
+// ============================================================================
+let paletteIdx = 0;
+const paletteOverlay = document.getElementById('palette-overlay');
+const paletteInput = document.getElementById('palette-input');
+const paletteResults = document.getElementById('palette-results');
+
+function buildPaletteIndex() {
+  const idx = [];
+  // Sections
+  ['brief','feeds','curriculum','daily','quiz','saved','access'].forEach(s => {
+    const titles = { brief: 'Today\'s Brief', feeds: 'Live Wire', curriculum: 'The Catch-Up', daily: 'Deep Dive', quiz: 'Quiz Yourself', saved: 'Saved & Notes', access: 'Take It Anywhere' };
+    idx.push({ type: 'section', title: titles[s], loc: '§' + s, action: () => { jumpTo(s); closePalette(); } });
+  });
+  // Resources
+  allResources.forEach(r => {
+    idx.push({
+      type: r.type, title: r.title,
+      loc: `Curriculum · ${r.epoch}`,
+      search: (r.title + ' ' + r.author + ' ' + r.note + ' ' + r.epoch).toLowerCase(),
+      action: () => { window.open(r.url, '_blank'); closePalette(); markActivity(); }
+    });
+  });
+  // Picks
+  [...pickPaper, ...pickEssay, ...pickTalk].forEach(p => {
+    idx.push({
+      type: 'pick', title: p.title, loc: 'Daily Pick',
+      search: (p.title + ' ' + p.author).toLowerCase(),
+      action: () => { window.open(p.url, '_blank'); closePalette(); markActivity(); }
+    });
+  });
+  // Saved items
+  state.saved.forEach(s => {
+    idx.push({
+      type: 'saved', title: s.title, loc: s.source,
+      search: (s.title + ' ' + s.source).toLowerCase(),
+      action: () => { window.open(s.url, '_blank'); closePalette(); markActivity(); }
+    });
+  });
+  // Concepts
+  concepts.forEach(c => {
+    idx.push({
+      type: 'concept', title: c.title, loc: 'Today\'s Brief',
+      search: (c.title + ' ' + c.body).toLowerCase(),
+      action: () => { jumpTo('brief'); closePalette(); }
+    });
+  });
+  return idx;
+}
+
+function openPalette() {
+  paletteOverlay.classList.add('open');
+  paletteInput.value = '';
+  paletteInput.focus();
+  renderPalette('');
+}
+function closePalette() { paletteOverlay.classList.remove('open'); }
+
+function renderPalette(q) {
+  const idx = buildPaletteIndex();
+  const ql = q.trim().toLowerCase();
+  const results = ql
+    ? idx.filter(i => (i.search || (i.title + ' ' + i.loc).toLowerCase()).includes(ql)).slice(0, 20)
+    : idx.slice(0, 20);
+  paletteIdx = 0;
+  if (!results.length) {
+    paletteResults.innerHTML = `<div style="padding: 30px 20px; text-align: center; font-family: monospace; font-size: 11px; color: var(--muted-c); letter-spacing: 0.15em;">NO MATCH</div>`;
+    return;
+  }
+  paletteResults.innerHTML = results.map((r, i) => `
+    <div class="palette-result ${i === 0 ? 'selected' : ''}" data-idx="${i}">
+      <span class="ptype">${r.type}</span>
+      <span class="ptitle">${r.title}</span>
+      <span class="ploc">${r.loc}</span>
+    </div>
+  `).join('');
+  paletteResults.querySelectorAll('.palette-result').forEach(el => {
+    el.onmouseover = () => {
+      paletteResults.querySelectorAll('.palette-result').forEach(x => x.classList.remove('selected'));
+      el.classList.add('selected');
+      paletteIdx = parseInt(el.dataset.idx);
+    };
+    el.onclick = () => results[parseInt(el.dataset.idx)].action();
+  });
+  paletteResults._results = results;
+}
+
+paletteInput.addEventListener('input', e => renderPalette(e.target.value));
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    if (paletteOverlay.classList.contains('open')) closePalette();
+    else openPalette();
+    return;
+  }
+  if (!paletteOverlay.classList.contains('open')) return;
+  if (e.key === 'Escape') { closePalette(); return; }
+  const items = paletteResults.querySelectorAll('.palette-result');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    paletteIdx = (paletteIdx + 1) % items.length;
+    items.forEach(x => x.classList.remove('selected'));
+    items[paletteIdx].classList.add('selected');
+    items[paletteIdx].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    paletteIdx = (paletteIdx - 1 + items.length) % items.length;
+    items.forEach(x => x.classList.remove('selected'));
+    items[paletteIdx].classList.add('selected');
+    items[paletteIdx].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (paletteResults._results && paletteResults._results[paletteIdx]) {
+      paletteResults._results[paletteIdx].action();
+    }
+  }
+});
+
+// ============================================================================
+// UTILITIES
+// ============================================================================
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+function jumpTo(id) {
+  if (!id) return;
+  document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('toc-jump').value = '';
+}
+
+function toggleTheme() {
+  const body = document.body;
+  const cur = body.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  body.setAttribute('data-theme', next);
+  document.getElementById('theme-btn').textContent = next.toUpperCase();
+  storage.set('fieldnotes:theme', next);
+}
+
+async function loadTheme() {
+  const saved = await storage.get('fieldnotes:theme');
+  if (saved) {
+    document.body.setAttribute('data-theme', saved);
+    document.getElementById('theme-btn').textContent = saved.toUpperCase();
+  }
+}
+
+function saveSelf() {
+  const blob = new Blob([document.documentElement.outerHTML], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'field-notes.html'; a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ DOWNLOADED');
+}
+
+function showFeeds() {
+  const feeds = [
+    'arXiv cs.LG: https://export.arxiv.org/rss/cs.LG',
+    'arXiv cs.CL: https://export.arxiv.org/rss/cs.CL',
+    'Google Research: https://research.google/blog/rss/',
+    'The Decoder: https://the-decoder.com/feed/',
+    'Hugging Face: https://huggingface.co/blog/feed.xml',
+    'Simon Willison: https://simonwillison.net/atom/everything/',
+    'Hacker News AI: https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT'
+  ].join('\n');
+  navigator.clipboard.writeText(feeds).then(
+    () => showToast('✓ FEED URLS COPIED'),
+    () => prompt('Copy these feed URLs:', feeds)
+  );
+}
+
+function copyPrompt() {
+  const promptText = `You are my AI research briefer. I'm an engineer with ML/CV background from before 2021 catching up on the last 4 years. My focus areas: LLMs & foundation models, multimodal AI, agents/RL, and applied ML deployment. I have 60+ minutes daily.
+
+Give me today's briefing in this format:
+1. ONE major thing that happened in AI in the past 7 days (with a link to the primary source — use web_search if you have it)
+2. ONE concept from 2021–2026 I probably haven't internalized yet, explained in 3 paragraphs
+3. ONE specific paper, blog post, OR video to spend my hour on today, with a one-sentence reason it's worth my time
+4. ONE concrete question to think about while I read it
+
+Be concise. Skip preamble. Today's date: ${new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' })}.`;
+  navigator.clipboard.writeText(promptText).then(
+    () => showToast('✓ PROMPT COPIED'),
+    () => prompt('Copy this prompt:', promptText)
+  );
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `field-notes-export-${todayKey()}.json`; a.click();
+  URL.revokeObjectURL(url);
+  showToast('✓ EXPORTED');
+}
+
+function resetAll() {
+  if (!confirm('Wipe all progress, notes, saved items, streak, and quiz scores? This cannot be undone.')) return;
+  state = {
+    done: {}, notes: {}, saved: [], concepts: {},
+    quiz: { score: 0, count: 0, answered: {} },
+    streak: { current: 0, lastVisit: null, history: {} }
+  };
+  saveState();
+  renderAll();
+  showToast('✓ RESET');
+}
+
+function renderAll() {
+  renderConcepts();
+  renderEpochTabs();
+  renderEpoch();
+  renderDailyPick();
+  pickQuizQuestion();
+  renderQuiz();
+  renderSaved();
+  renderStatusBar();
+  bindFilters();
+  renderFeeds();
+}
+
+// ============================================================================
+// INIT
+// ============================================================================
+const nowEl = document.getElementById('now');
+nowEl.textContent = now.toLocaleString('en-GB', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }).toUpperCase();
+document.getElementById('issue').textContent = String(dayOfYear).padStart(3, '0');
+document.getElementById('built').textContent = now.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' }).toUpperCase();
+
+// Click outside note modal to close
+document.getElementById('note-modal').addEventListener('click', e => {
+  if (e.target.id === 'note-modal') closeNote();
+});
+document.getElementById('palette-overlay').addEventListener('click', e => {
+  if (e.target.id === 'palette-overlay') closePalette();
+});
+
+(async () => {
+  await loadTheme();
+  await loadState();
+  renderAll();
+  loadArxiv();
+  loadHN();
+  loadBlogs();
+})();
+</script>
+
+</body>
+</html>
