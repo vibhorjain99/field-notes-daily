@@ -1,0 +1,40 @@
+name: Daily Field Notes Build
+
+on:
+  schedule:
+    - cron: '30 1 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install feedparser requests
+
+      - name: Run fetch script
+        run: python fetch.py
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "field-notes-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add docs/
+          if git diff --staged --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Daily build: $(date -u +'%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
