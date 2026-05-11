@@ -6,6 +6,8 @@
 <meta name="theme-color" content="#0a0e0d">
 <title>FIELD NOTES — A Personal AI Research Almanac</title>
 
+<link rel="manifest" href='data:application/manifest+json,{"name":"Field Notes","short_name":"Field Notes","start_url":".","display":"standalone","background_color":"%230a0e0d","theme_color":"%230a0e0d","icons":[{"src":"data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 192 192%22%3E%3Crect width=%22192%22 height=%22192%22 fill=%22%230a0e0d%22/%3E%3Ctext x=%2296%22 y=%22120%22 font-family=%22monospace%22 font-size=%2272%22 font-weight=%22700%22 fill=%22%237fff9c%22 text-anchor=%22middle%22%3EFN%3C/text%3E%3C/svg%3E","sizes":"192x192","type":"image/svg+xml"}]}'>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,700;9..144,900&family=JetBrains+Mono:wght@300;400;500;700&family=Inter+Tight:wght@400;500;600&display=swap" rel="stylesheet">
@@ -36,164 +38,327 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
   }
 
-  /* MASTHEAD */
+  /* COMMAND PALETTE */
+  .palette-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; display: none; backdrop-filter: blur(4px); align-items: flex-start; justify-content: center; padding-top: 12vh; }
+  .palette-overlay.open { display: flex; }
+  .palette { background: var(--card-bg); border: 1px solid var(--phosphor); width: min(640px, 92vw); max-height: 70vh; display: flex; flex-direction: column; box-shadow: 0 0 60px rgba(127,255,156,0.15); }
+  .palette input { background: none; border: none; outline: none; color: var(--fg); font-family: 'JetBrains Mono', monospace; font-size: 16px; padding: 20px; width: 100%; border-bottom: 1px solid var(--line); }
+  .palette-results { overflow-y: auto; padding: 8px 0; }
+  .palette-result { padding: 12px 20px; cursor: pointer; display: grid; grid-template-columns: 80px 1fr auto; gap: 16px; align-items: baseline; border-bottom: 1px dotted var(--line); }
+  .palette-result:hover, .palette-result.selected { background: rgba(127,255,156,0.08); }
+  .palette-result .ptype { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--phosphor); letter-spacing: 0.12em; text-transform: uppercase; }
+  .palette-result .ptitle { font-family: 'Fraunces', serif; font-size: 15px; line-height: 1.3; }
+  .palette-result .ploc { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-c); }
+  .palette-hint { padding: 10px 20px; border-top: 1px solid var(--line); font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-c); letter-spacing: 0.1em; display: flex; justify-content: space-between; }
+
+  #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--phosphor); color: var(--ink); padding: 12px 20px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; z-index: 200; opacity: 0; transition: all 0.3s; pointer-events: none; max-width: 90vw; }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
   header.masthead { border-bottom: 2px solid var(--fg); padding: 24px 32px 16px; position: relative; z-index: 2; }
-  .masthead-top {
-    display: flex; justify-content: space-between; align-items: center;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
-    color: var(--muted-c); margin-bottom: 18px; gap: 12px; flex-wrap: wrap;
-  }
-  .masthead-top .dot {
-    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
-    background: var(--phosphor); margin-right: 6px;
-    box-shadow: 0 0 8px var(--phosphor);
-    animation: pulse 2s ease-in-out infinite;
-  }
+  .masthead-top { display: flex; justify-content: space-between; align-items: center; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-c); margin-bottom: 18px; gap: 12px; flex-wrap: wrap; }
+  .masthead-top .dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--phosphor); margin-right: 6px; box-shadow: 0 0 8px var(--phosphor); animation: pulse 2s ease-in-out infinite; }
   @keyframes pulse { 50% { opacity: 0.4; } }
-  .icon-btn {
-    background: none; border: 1px solid var(--line); color: var(--fg);
-    padding: 6px 10px; cursor: pointer; font-family: 'JetBrains Mono', monospace;
-    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-    transition: all 0.15s;
-  }
+  .masthead-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .icon-btn { background: none; border: 1px solid var(--line); color: var(--fg); padding: 6px 10px; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; transition: all 0.15s; }
   .icon-btn:hover { border-color: var(--phosphor); color: var(--phosphor); }
+  .icon-btn.synced { border-color: var(--phosphor); color: var(--phosphor); }
 
-  h1.title {
-    font-family: 'Fraunces', serif; font-weight: 900;
-    font-size: clamp(48px, 9vw, 120px); line-height: 0.88;
-    letter-spacing: -0.04em; font-variation-settings: "opsz" 144;
-    margin-bottom: 12px;
-  }
+  h1.title { font-family: 'Fraunces', serif; font-weight: 900; font-size: clamp(48px, 9vw, 120px); line-height: 0.88; letter-spacing: -0.04em; font-variation-settings: "opsz" 144; margin-bottom: 12px; }
   h1.title em { font-style: italic; font-weight: 400; color: var(--phosphor); }
-  .subtitle {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase;
-    color: var(--muted-c);
-    border-top: 1px solid var(--line); padding-top: 12px;
-    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
-  }
+  .subtitle { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted-c); border-top: 1px solid var(--line); padding-top: 12px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 
-  /* BUILD STAMP — replaces the live "status bar" since this version is pre-baked */
-  .build-stamp {
-    background: var(--card-bg); border-bottom: 1px solid var(--line);
-    padding: 14px 32px; font-family: 'JetBrains Mono', monospace;
-    font-size: 11px; letter-spacing: 0.1em; color: var(--muted-c);
-    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
-    text-transform: uppercase; position: sticky; top: 0; z-index: 10;
-    backdrop-filter: blur(8px);
+  /* STATUS BAR */
+  .status-bar { background: var(--card-bg); border-bottom: 1px solid var(--line); padding: 16px 32px; position: sticky; top: 0; z-index: 10; backdrop-filter: blur(8px); display: grid; grid-template-columns: repeat(4, 1fr) auto; gap: 24px; align-items: center; }
+  @media (max-width: 800px) {
+    .status-bar { grid-template-columns: 1fr 1fr; gap: 16px; padding: 12px 16px; }
+    .status-bar .toc-jump { grid-column: 1 / -1; }
   }
-  .build-stamp .stamp-time { color: var(--phosphor); }
+  .status-stat { display: flex; flex-direction: column; gap: 4px; }
+  .status-stat .label { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted-c); }
+  .status-stat .value { font-family: 'Fraunces', serif; font-weight: 700; font-size: 22px; line-height: 1; letter-spacing: -0.01em; }
+  .status-stat .value .small { font-size: 13px; color: var(--muted-c); font-weight: 400; }
+  .status-stat .progress-track { height: 3px; background: var(--line); margin-top: 6px; overflow: hidden; }
+  .status-stat .progress-fill { height: 100%; background: var(--phosphor); transition: width 0.4s ease; }
+  .streak-flame { display: inline-block; color: var(--amber); animation: flicker 2s ease-in-out infinite; }
+  @keyframes flicker { 50% { opacity: 0.7; transform: scale(0.95); } }
+  .toc-jump { font-family: 'JetBrains Mono', monospace; font-size: 11px; background: var(--bg); border: 1px solid var(--line); color: var(--fg); padding: 8px 12px; outline: none; cursor: pointer; }
+  .heatmap { display: grid; grid-template-columns: repeat(14, 1fr); gap: 2px; margin-top: 4px; }
+  .heat-cell { aspect-ratio: 1; background: var(--line); opacity: 0.4; transition: all 0.2s; }
+  .heat-cell[data-active="1"] { background: var(--phosphor-dim); opacity: 1; }
+  .heat-cell[data-active="2"] { background: var(--phosphor); opacity: 1; }
+  .heat-cell.today { outline: 1px solid var(--amber); outline-offset: 1px; }
 
   main { max-width: 1400px; margin: 0 auto; padding: 48px 32px; position: relative; z-index: 2; }
-  section { margin-bottom: 80px; scroll-margin-top: 80px; }
-
-  .section-head {
-    display: flex; align-items: baseline; gap: 16px;
-    border-bottom: 1px solid var(--fg); padding-bottom: 8px;
-    margin-bottom: 28px; flex-wrap: wrap;
-  }
+  section { margin-bottom: 80px; scroll-margin-top: 100px; }
+  .section-head { display: flex; align-items: baseline; gap: 16px; border-bottom: 1px solid var(--fg); padding-bottom: 8px; margin-bottom: 28px; flex-wrap: wrap; }
   .section-head .num { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--phosphor); letter-spacing: 0.1em; }
   .section-head h2 { font-family: 'Fraunces', serif; font-weight: 700; font-style: italic; font-size: clamp(28px, 4vw, 44px); letter-spacing: -0.02em; flex: 1; }
   .section-head .meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-c); text-transform: uppercase; letter-spacing: 0.12em; }
 
-  /* FEEDS */
-  .track-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
-  .pill {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-    border: 1px solid var(--line); padding: 6px 12px;
-    cursor: pointer; background: none; color: var(--fg-soft);
-    transition: all 0.15s;
-  }
-  .pill:hover { border-color: var(--fg); }
-  .pill.active { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+  /* BRIEF */
+  .brief { display: grid; grid-template-columns: 1.5fr 1fr; gap: 32px; align-items: start; }
+  @media (max-width: 800px) { .brief { grid-template-columns: 1fr; } }
+  .lead-story { border-left: 3px solid var(--phosphor); padding-left: 24px; }
+  .lead-story .kicker { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--phosphor); margin-bottom: 8px; }
+  .lead-story h3 { font-family: 'Fraunces', serif; font-weight: 700; font-size: clamp(24px, 3vw, 36px); line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 12px; }
+  .lead-story p { font-size: 17px; line-height: 1.55; color: var(--fg-soft); margin-bottom: 14px; }
+  .lead-story .byline { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted-c); letter-spacing: 0.08em; text-transform: uppercase; }
+  .quick-hits-title { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--muted-c); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .hit { padding: 14px 0; border-bottom: 1px dotted var(--line); display: flex; gap: 12px; align-items: flex-start; cursor: pointer; transition: padding-left 0.15s; }
+  .hit:hover { padding-left: 8px; }
+  .hit:last-child { border-bottom: none; }
+  .hit .check { width: 16px; height: 16px; border: 1px solid var(--line); flex-shrink: 0; margin-top: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; background: none; }
+  .hit .check:hover { border-color: var(--phosphor); }
+  .hit.done .check { background: var(--phosphor); border-color: var(--phosphor); }
+  .hit.done .check::after { content: '✓'; color: var(--ink); font-size: 12px; font-weight: 700; }
+  .hit-body { flex: 1; }
+  .hit.done .hit-body h4, .hit.done .hit-body p { opacity: 0.4; text-decoration: line-through; }
+  .hit .tag { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.15em; text-transform: uppercase; color: var(--phosphor); margin-bottom: 4px; }
+  .hit h4 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 16px; line-height: 1.3; margin-bottom: 4px; }
+  .hit p { font-size: 13px; color: var(--muted-c); line-height: 1.4; }
 
+  /* FEEDS */
   .feeds-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 32px; }
   .feed-col { border-top: 2px solid var(--fg); padding-top: 16px; }
   .feed-col-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
   .feed-col-head h3 { font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.15em; text-transform: uppercase; font-weight: 700; }
   .feed-col-head .count { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-c); }
-  .feed-item { padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .feed-item { padding: 12px 0; border-bottom: 1px solid var(--line); display: flex; gap: 12px; align-items: flex-start; }
   .feed-item:last-child { border-bottom: none; }
+  .feed-item .save-btn { background: none; border: 1px solid var(--line); color: var(--muted-c); width: 22px; height: 22px; flex-shrink: 0; cursor: pointer; font-family: 'JetBrains Mono', monospace; font-size: 11px; line-height: 1; transition: all 0.15s; display: flex; align-items: center; justify-content: center; margin-top: 2px; padding: 0; }
+  .feed-item .save-btn:hover { color: var(--phosphor); border-color: var(--phosphor); }
+  .feed-item .save-btn.saved { background: var(--amber); border-color: var(--amber); color: var(--ink); }
+  .feed-item .content { flex: 1; min-width: 0; }
   .feed-item a { color: var(--fg); text-decoration: none; display: block; }
   .feed-item h4 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 15px; line-height: 1.3; margin-bottom: 4px; transition: color 0.15s; }
   .feed-item:hover h4 { color: var(--phosphor); }
   .feed-item .meta-line { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-c); letter-spacing: 0.08em; }
+  .empty-state { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted-c); padding: 20px 0; letter-spacing: 0.1em; }
 
-  .empty-state {
-    font-family: 'JetBrains Mono', monospace; font-size: 11px;
-    color: var(--muted-c); padding: 20px 0; letter-spacing: 0.1em;
+  /* TRACK PILLS */
+  .track-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+  .pill { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; border: 1px solid var(--line); padding: 6px 12px; cursor: pointer; background: none; color: var(--fg-soft); transition: all 0.15s; }
+  .pill:hover { border-color: var(--fg); }
+  .pill.active { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+  /* CURRICULUM */
+  .curriculum { display: grid; grid-template-columns: 220px 1fr; gap: 0; }
+  @media (max-width: 800px) { .curriculum { grid-template-columns: 1fr; } }
+  .timeline-axis { border-right: 1px solid var(--line); padding-right: 20px; font-family: 'JetBrains Mono', monospace; }
+  @media (max-width: 800px) { .timeline-axis { border-right: none; border-bottom: 1px solid var(--line); padding: 0 0 20px; margin-bottom: 20px; display: flex; gap: 12px; overflow-x: auto; } }
+  .epoch-tab { display: block; padding: 12px 8px; cursor: pointer; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted-c); border: none; background: none; text-align: left; width: 100%; border-left: 2px solid transparent; transition: all 0.15s; position: relative; }
+  .epoch-tab:hover { color: var(--fg); }
+  .epoch-tab.active { color: var(--phosphor); border-left-color: var(--phosphor); background: rgba(127,255,156,0.04); }
+  .epoch-tab .year { display: block; font-size: 18px; font-weight: 700; color: var(--fg); margin-bottom: 2px; }
+  .epoch-tab.active .year { color: var(--phosphor); }
+  .epoch-tab .epoch-progress { display: block; font-size: 9px; color: var(--phosphor-dim); margin-top: 4px; }
+  @media (max-width: 800px) {
+    .epoch-tab { white-space: nowrap; border-left: none; border-bottom: 2px solid transparent; }
+    .epoch-tab.active { border-left: none; border-bottom-color: var(--phosphor); }
+  }
+  .epoch-content { padding-left: 32px; }
+  @media (max-width: 800px) { .epoch-content { padding-left: 0; } }
+  .epoch-content h3 { font-family: 'Fraunces', serif; font-weight: 700; font-style: italic; font-size: 28px; margin-bottom: 8px; letter-spacing: -0.02em; }
+  .epoch-content .epoch-summary { font-family: 'Fraunces', serif; font-size: 16px; line-height: 1.6; color: var(--fg-soft); margin-bottom: 28px; border-bottom: 1px solid var(--line); padding-bottom: 20px; }
+
+  .resource { display: grid; grid-template-columns: 24px 90px 1fr auto; gap: 16px; padding: 14px 0; border-bottom: 1px dotted var(--line); align-items: baseline; transition: background 0.15s; }
+  .resource:hover { background: rgba(127,255,156,0.03); }
+  .resource.done .body h4 a, .resource.done .body p { opacity: 0.4; }
+  .resource.done .body h4 a { text-decoration: line-through; }
+  .resource .check { width: 18px; height: 18px; border: 1px solid var(--line); cursor: pointer; background: none; padding: 0; display: flex; align-items: center; justify-content: center; transition: all 0.15s; margin-top: 2px; }
+  .resource .check:hover { border-color: var(--phosphor); }
+  .resource.done .check { background: var(--phosphor); border-color: var(--phosphor); }
+  .resource.done .check::after { content: '✓'; color: var(--ink); font-size: 12px; font-weight: 700; }
+  .resource .type { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--phosphor); }
+  .resource .type.paper { color: var(--amber); }
+  .resource .type.video { color: var(--rust); }
+  .resource .body h4 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 17px; line-height: 1.25; margin-bottom: 4px; }
+  .resource .body h4 a { color: var(--fg); text-decoration: none; border-bottom: 1px solid transparent; }
+  .resource .body h4 a:hover { border-bottom-color: var(--phosphor); color: var(--phosphor); }
+  .resource .body p { font-size: 13px; color: var(--muted-c); line-height: 1.4; }
+  .resource .body .note-line { margin-top: 8px; font-size: 13px; color: var(--amber); font-style: italic; border-left: 2px solid var(--amber); padding-left: 8px; display: none; }
+  .resource.has-note .body .note-line { display: block; }
+  .resource .actions { display: flex; gap: 6px; align-items: center; }
+  .resource .mini-btn { font-family: 'JetBrains Mono', monospace; font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; background: none; border: 1px solid var(--line); color: var(--muted-c); padding: 4px 8px; cursor: pointer; transition: all 0.15s; }
+  .resource .mini-btn:hover { color: var(--phosphor); border-color: var(--phosphor); }
+  .resource .mini-btn.saved { background: var(--amber); border-color: var(--amber); color: var(--ink); }
+  .resource .duration { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-c); letter-spacing: 0.08em; white-space: nowrap; }
+  @media (max-width: 600px) {
+    .resource { grid-template-columns: 24px 1fr; gap: 8px; }
+    .resource .type, .resource .duration, .resource .actions { grid-column: 2; text-align: left; }
   }
 
-  footer {
-    border-top: 2px solid var(--fg); padding: 32px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
-    color: var(--muted-c);
-    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px;
-    position: relative; z-index: 2;
-  }
-  footer a { color: var(--phosphor); text-decoration: none; }
+  /* QUIZ */
+  .quiz-card { background: var(--card-bg); border: 1px solid var(--line); padding: 32px; max-width: 720px; margin: 0 auto; }
+  .quiz-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+  .quiz-header .qnum { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--phosphor); letter-spacing: 0.15em; }
+  .quiz-header .qscore { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted-c); letter-spacing: 0.1em; }
+  .quiz-q { font-family: 'Fraunces', serif; font-size: 22px; line-height: 1.3; margin-bottom: 24px; font-weight: 500; }
+  .quiz-options { display: flex; flex-direction: column; gap: 8px; }
+  .quiz-option { padding: 14px 18px; border: 1px solid var(--line); cursor: pointer; font-family: 'Fraunces', serif; font-size: 15px; background: none; color: var(--fg); text-align: left; transition: all 0.15s; }
+  .quiz-option:hover { border-color: var(--fg); background: rgba(127,255,156,0.04); }
+  .quiz-option.correct { background: var(--phosphor); color: var(--ink); border-color: var(--phosphor); }
+  .quiz-option.wrong { background: var(--rust); color: var(--paper); border-color: var(--rust); }
+  .quiz-option.revealed { pointer-events: none; }
+  .quiz-explanation { margin-top: 20px; padding: 16px; background: rgba(127,255,156,0.06); border-left: 3px solid var(--phosphor); font-size: 14px; line-height: 1.6; display: none; color: var(--fg-soft); }
+  .quiz-explanation.show { display: block; }
+  .quiz-explanation strong { color: var(--phosphor); font-weight: 600; }
+  .quiz-controls { margin-top: 24px; display: flex; justify-content: space-between; gap: 12px; }
+  .reroll-btn { font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; background: none; border: 1px solid var(--fg); color: var(--fg); padding: 10px 20px; cursor: pointer; transition: all 0.15s; }
+  .reroll-btn:hover { background: var(--phosphor); color: var(--ink); border-color: var(--phosphor); }
 
-  .ornament {
-    text-align: center; font-family: 'JetBrains Mono', monospace;
-    color: var(--muted-c); margin: 60px 0 40px;
-    letter-spacing: 0.5em; font-size: 12px;
-  }
+  /* SAVED */
+  .saved-view { background: var(--card-bg); border: 1px solid var(--line); padding: 24px; }
+  .saved-empty { text-align: center; padding: 40px 20px; color: var(--muted-c); font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.15em; text-transform: uppercase; }
+  .saved-item { padding: 14px 0; border-bottom: 1px dotted var(--line); display: flex; gap: 16px; align-items: flex-start; }
+  .saved-item:last-child { border-bottom: none; }
+  .saved-item .si-content { flex: 1; }
+  .saved-item h4 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 15px; margin-bottom: 4px; }
+  .saved-item h4 a { color: var(--fg); text-decoration: none; }
+  .saved-item h4 a:hover { color: var(--phosphor); }
+  .saved-item .si-meta { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-c); letter-spacing: 0.08em; }
+  .saved-item .si-note { margin-top: 6px; font-size: 13px; color: var(--amber); font-style: italic; border-left: 2px solid var(--amber); padding-left: 8px; }
+  .saved-item .si-remove { background: none; border: 1px solid var(--line); color: var(--muted-c); font-family: 'JetBrains Mono', monospace; font-size: 9px; padding: 4px 8px; cursor: pointer; letter-spacing: 0.1em; }
+  .saved-item .si-remove:hover { color: var(--rust); border-color: var(--rust); }
 
-  /* Intro card */
-  .intro-card {
-    border-left: 3px solid var(--phosphor); padding: 0 24px;
-    margin-bottom: 40px;
+  /* MODAL */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 90; display: none; align-items: center; justify-content: center; padding: 20px; backdrop-filter: blur(4px); }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--card-bg); border: 1px solid var(--phosphor); width: min(560px, 100%); padding: 28px; }
+  .modal h3 { font-family: 'Fraunces', serif; font-size: 22px; font-style: italic; margin-bottom: 4px; font-weight: 600; }
+  .modal .modal-sub { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-c); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 18px; }
+  .modal textarea, .modal input[type="text"] { width: 100%; min-height: 120px; padding: 12px; background: var(--bg); border: 1px solid var(--line); color: var(--fg); font-family: 'Fraunces', serif; font-size: 15px; line-height: 1.5; resize: vertical; outline: none; }
+  .modal input[type="text"] { min-height: auto; font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+  .modal textarea:focus, .modal input:focus { border-color: var(--phosphor); }
+  .modal-actions { margin-top: 16px; display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+  .modal-actions button { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; background: none; border: 1px solid var(--fg); color: var(--fg); padding: 8px 14px; cursor: pointer; transition: all 0.15s; }
+  .modal-actions button.primary { background: var(--phosphor); color: var(--ink); border-color: var(--phosphor); }
+  .modal-actions button:hover { background: var(--fg); color: var(--bg); }
+  .modal-actions button.primary:hover { background: var(--paper); color: var(--ink); border-color: var(--paper); }
+  .modal-help { margin-top: 12px; font-size: 13px; color: var(--muted-c); line-height: 1.5; }
+  .modal-help code { font-family: 'JetBrains Mono', monospace; font-size: 12px; background: rgba(127,255,156,0.08); padding: 2px 6px; color: var(--phosphor); }
+
+  /* ACCESS CARDS */
+  .access-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 24px; }
+  .access-card { border: 1px solid var(--line); padding: 24px; display: flex; flex-direction: column; gap: 12px; transition: border-color 0.15s; }
+  .access-card:hover { border-color: var(--phosphor); }
+  .access-card .icon { font-family: 'JetBrains Mono', monospace; font-size: 24px; font-weight: 700; color: var(--phosphor); margin-bottom: 4px; }
+  .access-card h4 { font-family: 'Fraunces', serif; font-weight: 600; font-size: 18px; }
+  .access-card p { font-size: 13px; color: var(--fg-soft); line-height: 1.5; flex: 1; }
+  .access-card button, .access-card a { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase; background: none; border: 1px solid var(--fg); color: var(--fg); padding: 8px 12px; cursor: pointer; text-align: center; text-decoration: none; transition: all 0.15s; align-self: flex-start; }
+  .access-card button:hover, .access-card a:hover { background: var(--fg); color: var(--bg); }
+
+  footer { border-top: 2px solid var(--fg); padding: 32px; font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted-c); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; position: relative; z-index: 2; }
+  .ornament { text-align: center; font-family: 'JetBrains Mono', monospace; color: var(--muted-c); margin: 60px 0 40px; letter-spacing: 0.5em; font-size: 12px; }
+
+  @keyframes celebrate { 0% { transform: scale(1); } 50% { transform: scale(1.05); color: var(--phosphor); } 100% { transform: scale(1); } }
+  .celebrate { animation: celebrate 0.6s ease; }
+
+  @media print {
+    .status-bar, .access-grid, .reroll-btn, .track-pills, .palette-overlay, #toast, .icon-btn, .resource .actions, .resource .check, .feed-item .save-btn { display: none !important; }
+    body { background: white !important; color: black !important; }
+    section { page-break-inside: avoid; }
   }
-  .intro-card .kicker {
-    font-family: 'JetBrains Mono', monospace; font-size: 11px;
-    letter-spacing: 0.15em; text-transform: uppercase;
-    color: var(--phosphor); margin-bottom: 8px;
-  }
-  .intro-card h3 { font-family: 'Fraunces', serif; font-weight: 700; font-size: clamp(24px, 3vw, 36px); line-height: 1.15; letter-spacing: -0.02em; margin-bottom: 12px; }
-  .intro-card p { font-size: 17px; line-height: 1.55; color: var(--fg-soft); margin-bottom: 14px; max-width: 720px; }
 </style>
 </head>
 <body class="grain" data-theme="dark">
 
+<div class="palette-overlay" id="palette-overlay">
+  <div class="palette">
+    <input type="text" id="palette-input" placeholder="Search resources, papers, talks, feeds…  (try 'rlhf', 'agent', '2024')" autocomplete="off">
+    <div class="palette-results" id="palette-results"></div>
+    <div class="palette-hint"><span>↑↓ navigate · ↵ open · esc close</span><span>⌘K / ctrl+K</span></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="note-modal">
+  <div class="modal">
+    <h3 id="note-title">Add a note</h3>
+    <div class="modal-sub" id="note-sub"></div>
+    <textarea id="note-text" placeholder="What stood out? What did you not understand? What do you want to remember?"></textarea>
+    <div class="modal-actions">
+      <button onclick="closeNote()">cancel</button>
+      <button class="primary" onclick="saveNote()">save note</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="sync-modal">
+  <div class="modal">
+    <h3>Cloud sync</h3>
+    <div class="modal-sub">Paste your Cloudflare Worker URL and a sync code</div>
+    <p class="modal-help">If you've set up the Cloudflare Workers backend (see README), paste the Worker URL here and pick a sync code that only you know. Same URL + code on another device pulls your progress across.</p>
+    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;">
+      <input type="text" id="sync-url" placeholder="https://field-notes-sync.YOUR-NAME.workers.dev">
+      <input type="text" id="sync-code" placeholder="a-secret-code-only-you-know">
+    </div>
+    <p class="modal-help">Don't have a backend yet? Local storage on this browser is the default — that already works fine for single-device use.</p>
+    <div class="modal-actions">
+      <button onclick="disableSync()">disable sync</button>
+      <button onclick="closeSync()">cancel</button>
+      <button class="primary" onclick="enableSync()">enable & push now</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
 <header class="masthead">
   <div class="masthead-top">
-    <span><span class="dot"></span>AUTO-BUILT DAILY</span>
-    <button class="icon-btn" onclick="toggleTheme()" id="theme-btn">DARK</button>
+    <span><span class="dot"></span>BUILT <span id="built-at">—</span></span>
+    <div class="masthead-actions">
+      <button class="icon-btn" onclick="openPalette()">⌘K SEARCH</button>
+      <button class="icon-btn" onclick="openSync()" id="sync-btn">SYNC: OFF</button>
+      <button class="icon-btn" onclick="toggleTheme()" id="theme-btn">DARK</button>
+    </div>
   </div>
   <h1 class="title">Field <em>Notes</em></h1>
   <div class="subtitle">
     <span>A personal almanac of artificial intelligence research</span>
-    <span>Rebuilt every morning · GitHub Actions edition</span>
+    <span>Daily build · v2 · Mumbai edition</span>
   </div>
 </header>
 
-<div class="build-stamp">
-  <span>LAST BUILD: <span class="stamp-time">11 May 2026 · 10:26 UTC</span></span>
-  <span>NEXT BUILD: TOMORROW 01:30 UTC</span>
-  <span><a href="https://github.com/" style="color:inherit; text-decoration: underline;" id="repo-link">VIEW SOURCE</a></span>
+<div class="status-bar">
+  <div class="status-stat"><span class="label">Curriculum</span><span class="value"><span id="curr-done">0</span><span class="small">/<span id="curr-total">0</span></span></span><div class="progress-track"><div class="progress-fill" id="curr-bar" style="width: 0%"></div></div></div>
+  <div class="status-stat"><span class="label">Streak</span><span class="value" id="streak-val"><span class="streak-flame">▲</span> 0<span class="small"> days</span></span><div class="heatmap" id="heatmap"></div></div>
+  <div class="status-stat"><span class="label">Notes</span><span class="value" id="note-count">0</span><span class="label" style="opacity:0.6; margin-top:6px;">saved thoughts</span></div>
+  <div class="status-stat"><span class="label">Quiz score</span><span class="value" id="quiz-score">0<span class="small">%</span></span><span class="label" style="opacity:0.6; margin-top:6px;"><span id="quiz-count">0</span> answered</span></div>
+  <select class="toc-jump" id="toc-jump" onchange="jumpTo(this.value)">
+    <option value="">jump to section…</option>
+    <option value="brief">§01 Today's Brief</option>
+    <option value="feeds">§02 Live Wire</option>
+    <option value="curriculum">§03 The Catch-Up</option>
+    <option value="daily">§04 Deep Dive</option>
+    <option value="quiz">§05 Quiz Yourself</option>
+    <option value="saved">§06 Saved & Notes</option>
+    <option value="access">§07 Take It Anywhere</option>
+  </select>
 </div>
 
 <main>
 
-  <section>
-    <div class="intro-card">
-      <div class="kicker">Your daily AI briefing</div>
-      <h3>Three feeds. One page. Pre-fetched while you sleep.</h3>
-      <p>This page was last built at <strong>11 May 2026 · 10:26 UTC</strong> by a GitHub Action. It pulls the latest arXiv preprints (cs.LG, cs.CL, cs.AI), top AI stories from Hacker News, and recent posts from Google Research, Hugging Face, Anthropic, The Decoder, and Simon Willison. No client-side fetching, no API keys, no CORS proxies. Just open and read.</p>
-      <p style="font-size: 14px; color: var(--muted-c);">For the interactive curriculum, quiz, notes, and streak tracking, open the <a href="#" style="color: var(--phosphor);">full Field Notes dashboard</a> — that's the version that lives in your browser and tracks your progress.</p>
+  <section id="brief">
+    <div class="section-head"><span class="num">§01</span><h2>Today's Brief</h2><span class="meta">Check off concepts as you learn them</span></div>
+    <div class="brief">
+      <article class="lead-story">
+        <div class="kicker">The Foundational Shift · 2022–2026</div>
+        <h3>From statistical parrots to reasoning systems: how four years rebuilt every assumption you brought from 2021.</h3>
+        <p>If you put down ML in 2021, your mental model is roughly: CNNs for vision, BERT for text, RL is mostly games. Four years later, a single architecture — the decoder-only transformer, scaled with RLHF and chain-of-thought — has eaten most of that. The question stopped being "which model" and became "which prompt, which tools, which agent loop."</p>
+        <p>This dashboard is built around five inflection points: <strong>InstructGPT (2022)</strong>, <strong>ChatGPT (Nov 2022)</strong>, <strong>GPT-4 + multimodality (2023)</strong>, <strong>reasoning models like o1/DeepSeek-R1 (late 2024–2025)</strong>, and <strong>agentic systems (2025–2026)</strong>.</p>
+        <p class="byline">— Start with §03 for the timeline. Start with §02 for today's headlines.</p>
+      </article>
+      <aside>
+        <div class="quick-hits-title">— Five concepts you need by Friday —</div>
+        <div id="concept-list"></div>
+      </aside>
     </div>
   </section>
 
-  <section id="feeds">
-    <div class="section-head">
-      <span class="num">§01</span>
-      <h2>Live Wire</h2>
-      <span class="meta">Filter by your tracks</span>
-    </div>
+  <div class="ornament">· · · · ·</div>
 
+  <section id="feeds">
+    <div class="section-head"><span class="num">§02</span><h2>Live Wire</h2><span class="meta">Pre-fetched at build time · click ★ to save</span></div>
     <div class="track-pills" id="track-pills">
       <button class="pill active" data-filter="all">All Tracks</button>
       <button class="pill" data-filter="llm">LLMs</button>
@@ -201,103 +366,841 @@
       <button class="pill" data-filter="agents">Agents & RL</button>
       <button class="pill" data-filter="applied">Applied ML</button>
     </div>
+    <div class="feeds-grid" id="feeds-grid"></div>
+  </section>
 
-    <div class="feeds-grid">
-      <div class="feed-col">
-        <div class="feed-col-head"><h3>arXiv · cs.LG / cs.CL / cs.AI</h3><span class="count" id="arxiv-count">—</span></div>
-        <div id="arxiv-feed"></div>
-      </div>
-      <div class="feed-col">
-        <div class="feed-col-head"><h3>Hacker News · AI Frontpage</h3><span class="count" id="hn-count">—</span></div>
-        <div id="hn-feed"></div>
-      </div>
-      <div class="feed-col">
-        <div class="feed-col-head"><h3>Industry Blogs</h3><span class="count" id="blog-count">—</span></div>
-        <div id="blog-feed"></div>
-      </div>
+  <div class="ornament">· · · · ·</div>
+
+  <section id="curriculum">
+    <div class="section-head"><span class="num">§03</span><h2>The Catch-Up</h2><span class="meta">Click ☐ done · ✎ note · ★ save</span></div>
+    <div class="curriculum">
+      <div class="timeline-axis" id="epoch-tabs"></div>
+      <div class="epoch-content" id="epoch-content"></div>
+    </div>
+  </section>
+
+  <div class="ornament">· · · · ·</div>
+
+  <section id="daily">
+    <div class="section-head"><span class="num">§04</span><h2>Today's Deep Dive</h2><span class="meta">One paper · One essay · One talk</span></div>
+    <div id="daily-pick"></div>
+  </section>
+
+  <div class="ornament">· · · · ·</div>
+
+  <section id="quiz">
+    <div class="section-head"><span class="num">§05</span><h2>Quiz Yourself</h2><span class="meta">12 questions · tests the 2022–2026 essentials</span></div>
+    <div class="quiz-card" id="quiz-card"></div>
+  </section>
+
+  <div class="ornament">· · · · ·</div>
+
+  <section id="saved">
+    <div class="section-head"><span class="num">§06</span><h2>Saved & Notes</h2><span class="meta">Everything you bookmarked or annotated</span></div>
+    <div class="saved-view" id="saved-view"></div>
+  </section>
+
+  <div class="ornament">· · · · ·</div>
+
+  <section id="access">
+    <div class="section-head"><span class="num">§07</span><h2>Take It Anywhere</h2><span class="meta">Six ways to keep this with you</span></div>
+    <div class="access-grid">
+      <div class="access-card"><div class="icon">[ + ]</div><h4>Install as app</h4><p>Mobile: Share → Add to Home Screen. Desktop: install icon in browser address bar.</p><a href="#" onclick="event.preventDefault(); showToast('iOS Safari: Share → Add to Home Screen. Chrome: install icon in address bar.')">how to install</a></div>
+      <div class="access-card"><div class="icon">[ ⎙ ]</div><h4>Print today's brief</h4><p>Print to PDF if you prefer paper. The stylesheet hides interactive bits.</p><button onclick="window.print()">print to pdf</button></div>
+      <div class="access-card"><div class="icon">[ ⇆ ]</div><h4>RSS feeds</h4><p>Subscribe directly in Feedly, NetNewsWire, Reeder.</p><button onclick="showFeeds()">copy feed urls</button></div>
+      <div class="access-card"><div class="icon">[ ⌕ ]</div><h4>Daily Claude prompt</h4><p>Paste into Claude every morning for an alternate briefing.</p><button onclick="copyPrompt()">copy prompt</button></div>
+      <div class="access-card"><div class="icon">[ ⤓ ]</div><h4>Export progress</h4><p>Download your saved items, notes, completion as JSON.</p><button onclick="exportData()">export json</button></div>
+      <div class="access-card"><div class="icon">[ ↺ ]</div><h4>Reset everything</h4><p>Wipe progress, notes, streak, saved items.</p><button onclick="resetAll()">reset all data</button></div>
     </div>
   </section>
 
 </main>
 
 <footer>
-  <span>Field Notes Daily · Built with GitHub Actions</span>
-  <span>Edit <code>fetch.py</code> to add more feeds</span>
-  <span>v1.0 · <a href="#">↑ top</a></span>
+  <span>Field Notes v2 · Daily build at <span id="footer-time">—</span></span>
+  <span>Tracks: LLMs · Multimodal · Agents · Applied ML</span>
+  <span><a href="#brief" style="color: var(--phosphor);">↑ top</a></span>
 </footer>
 
 <script>
-// The build script replaces {"generated_at": "2026-05-11T10:26:34.923268+00:00", "arxiv": [{"id": "arxiv:2605.08083v1", "title": "LLMs Improving LLMs: Agentic Discovery for Test-Time Scaling", "url": "https://arxiv.org/abs/2605.08083v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "agents", "applied"]}, {"id": "arxiv:2605.08078v1", "title": "Normalizing Trajectory Models", "url": "https://arxiv.org/abs/2605.08078v1", "date": "2026-05-08", "source": "arXiv", "tags": ["multimodal"]}, {"id": "arxiv:2605.08077v1", "title": "Conformal Path Reasoning: Trustworthy Knowledge Graph Question Answering via Path-Level Calibration", "url": "https://arxiv.org/abs/2605.08077v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm"]}, {"id": "arxiv:2605.08075v1", "title": "Zero-Shot Imagined Speech Decoding via Imagined-to-Listened MEG Mapping", "url": "https://arxiv.org/abs/2605.08075v1", "date": "2026-05-08", "source": "arXiv", "tags": []}, {"id": "arxiv:2605.08074v1", "title": "GRAPHLCP: Structure-Aware Localized Conformal Prediction on Graphs", "url": "https://arxiv.org/abs/2605.08074v1", "date": "2026-05-08", "source": "arXiv", "tags": []}, {"id": "arxiv:2605.08073v1", "title": "EmambaIR: Efficient Visual State Space Model for Event-guided Image Reconstruction", "url": "https://arxiv.org/abs/2605.08073v1", "date": "2026-05-08", "source": "arXiv", "tags": ["multimodal", "applied"]}, {"id": "arxiv:2605.08072v1", "title": "A Note on Non-Negative $L_1$-Approximating Polynomials", "url": "https://arxiv.org/abs/2605.08072v1", "date": "2026-05-08", "source": "arXiv", "tags": []}, {"id": "arxiv:2605.08070v1", "title": "VecCISC: Improving Confidence-Informed Self-Consistency with Reasoning Trace Clustering and Candidate Answer Selection", "url": "https://arxiv.org/abs/2605.08070v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "applied"]}, {"id": "arxiv:2605.08063v1", "title": "Flow-OPD: On-Policy Distillation for Flow Matching Models", "url": "https://arxiv.org/abs/2605.08063v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "multimodal", "agents"]}, {"id": "arxiv:2605.08061v1", "title": "Rubric-Grounded RL: Structured Judge Rewards for Generalizable Reasoning", "url": "https://arxiv.org/abs/2605.08061v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "agents"]}, {"id": "arxiv:2605.08060v1", "title": "The Memory Curse: How Expanded Recall Erodes Cooperative Intent in LLM Agents", "url": "https://arxiv.org/abs/2605.08060v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "agents"]}, {"id": "arxiv:2605.08057v1", "title": "CA-SQL: Complexity-Aware Inference Time Reasoning for Text-to-SQL via Exploration and Compute Budget Allocation", "url": "https://arxiv.org/abs/2605.08057v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "applied"]}, {"id": "arxiv:2605.08053v1", "title": "Reinforcement Learning for Exponential Utility: Algorithms and Convergence in Discounted MDPs", "url": "https://arxiv.org/abs/2605.08053v1", "date": "2026-05-08", "source": "arXiv", "tags": ["agents"]}, {"id": "arxiv:2605.08048v1", "title": "Accurate and Efficient Statistical Testing for Word Semantic Breadth", "url": "https://arxiv.org/abs/2605.08048v1", "date": "2026-05-08", "source": "arXiv", "tags": ["applied"]}, {"id": "arxiv:2605.08045v1", "title": "Uncertainty-Aware Structured Data Extraction from Full CMR Reports via Distilled LLMs", "url": "https://arxiv.org/abs/2605.08045v1", "date": "2026-05-08", "source": "arXiv", "tags": ["applied"]}], "hn": [{"id": "hn:47340079", "title": "Don't post generated/AI-edited comments. HN is for conversation between humans", "url": "https://news.ycombinator.com/newsguidelines.html#generated", "date": "2026-03-11", "source": "Hacker News", "tags": [], "meta": "4229 pts · 1668 comments"}, {"id": "hn:35154527", "title": "GPT-4", "url": "https://openai.com/research/gpt-4", "date": "2023-03-14", "source": "Hacker News", "tags": ["llm"], "meta": "4091 pts · 2507 comments"}, {"id": "hn:40345775", "title": "GPT-4o", "url": "https://openai.com/index/hello-gpt-4o/", "date": "2024-05-13", "source": "Hacker News", "tags": ["llm"], "meta": "3138 pts · 2366 comments"}, {"id": "hn:39526057", "title": "Airfoil", "url": "https://ciechanow.ski/airfoil/", "date": "2024-02-27", "source": "Hacker News", "tags": [], "meta": "2544 pts · 296 comments"}, {"id": "hn:41046773", "title": "Open source AI is the path forward", "url": "https://about.fb.com/news/2024/07/open-source-ai-is-the-path-forward/", "date": "2024-07-23", "source": "Hacker News", "tags": [], "meta": "2360 pts · 887 comments"}, {"id": "hn:44163063", "title": "My AI skeptic friends are all nuts", "url": "https://fly.io/blog/youre-all-nuts/", "date": "2025-06-02", "source": "Hacker News", "tags": [], "meta": "2356 pts · 2826 comments"}, {"id": "hn:46990729", "title": "An AI agent published a hit piece on me", "url": "https://theshamblog.com/an-ai-agent-published-a-hit-piece-on-me/", "date": "2026-02-12", "source": "Hacker News", "tags": ["agents"], "meta": "2346 pts · 951 comments"}, {"id": "hn:46902223", "title": "Claude Opus 4.6", "url": "https://www.anthropic.com/news/claude-opus-4-6", "date": "2026-02-05", "source": "Hacker News", "tags": ["llm"], "meta": "2346 pts · 1031 comments"}, {"id": "hn:38544729", "title": "Gemini AI", "url": "https://deepmind.google/technologies/gemini/", "date": "2023-12-06", "source": "Hacker News", "tags": ["llm"], "meta": "2135 pts · 1602 comments"}, {"id": "hn:43163011", "title": "Claude 3.7 Sonnet and Claude Code", "url": "https://www.anthropic.com/news/claude-3-7-sonnet", "date": "2025-02-24", "source": "Hacker News", "tags": ["llm"], "meta": "2127 pts · 963 comments"}, {"id": "hn:47584540", "title": "Claude Code's source code has been leaked via a map file in their NPM registry", "url": "https://twitter.com/Fried_rice/status/2038894956459290963", "date": "2026-03-31", "source": "Hacker News", "tags": ["llm"], "meta": "2095 pts · 1022 comments"}, {"id": "hn:47136179", "title": "IDF killed Gaza aid workers at point blank range in 2025 massacre: Report", "url": "https://www.dropsitenews.com/p/israeli-soldiers-tel-sultan-gaza-red-crescent-civil-defense-massacre-report-forensic-architecture-earshot", "date": "2026-02-24", "source": "Hacker News", "tags": [], "meta": "2084 pts · 997 comments"}, {"id": "hn:44826997", "title": "GPT-5", "url": "https://openai.com/gpt-5/", "date": "2025-08-07", "source": "Hacker News", "tags": ["llm"], "meta": "2063 pts · 2482 comments"}, {"id": "hn:44063703", "title": "Claude 4", "url": "https://www.anthropic.com/news/claude-4", "date": "2025-05-22", "source": "Hacker News", "tags": ["llm"], "meta": "2013 pts · 1170 comments"}, {"id": "hn:41392128", "title": "Bypassing airport security via SQL injection", "url": "https://ian.sh/tsa", "date": "2024-08-29", "source": "Hacker News", "tags": [], "meta": "2004 pts · 440 comments"}], "blogs": [{"id": "blog:The Decoder:emselves-and-theyre-getting-better-fast/", "title": "AI agents can now hack computers and copy themselves, and they're getting better fast", "url": "https://the-decoder.com/ai-agents-can-now-hack-computers-and-copy-themselves-and-theyre-getting-better-fast/", "date": "2026-05-10", "source": "The Decoder", "tags": []}, {"id": "blog:The Decoder:eligious-leaders-to-seek-ethical-advice/", "title": "Anthropic and OpenAI sit down with religious leaders to seek ethical advice", "url": "https://the-decoder.com/anthropic-and-openai-sit-down-with-religious-leaders-to-seek-ethical-advice/", "date": "2026-05-10", "source": "The Decoder", "tags": []}, {"id": "blog:The Decoder:-ai-expansion-bets-big-on-chinese-chips/", "title": "ByteDance plans over $30 billion for AI expansion, bets big on Chinese chips", "url": "https://the-decoder.com/bytedance-plans-over-30-billion-for-ai-expansion-bets-big-on-chinese-chips/", "date": "2026-05-10", "source": "The Decoder", "tags": []}, {"id": "blog:The Decoder:tworks-warns-of-autonomous-ai-attackers/", "title": "METR says it can barely measure Claude Mythos, Palo Alto Networks warns of autonomous AI attackers", "url": "https://the-decoder.com/metr-says-it-can-barely-measure-claude-mythos-palo-alto-networks-warns-of-autonomous-ai-attackers/", "date": "2026-05-10", "source": "The Decoder", "tags": ["llm", "agents"]}, {"id": "blog:Hugging Face:-ai-amd-developer-hackathon/machinacheck", "title": "MachinaCheck: Building a Multi-Agent CNC Manufacturability System on AMD MI300X", "url": "https://huggingface.co/blog/lablab-ai-amd-developer-hackathon/machinacheck", "date": "2026-05-10", "source": "Hugging Face", "tags": ["agents"]}, {"id": "blog:Simon Willison:york-times-editors-note/#atom-everything", "title": "Quoting New York Times Editors’ Note", "url": "https://simonwillison.net/2026/May/10/new-york-times-editors-note/#atom-everything", "date": "2026-05-10", "source": "Simon Willison", "tags": []}, {"id": "blog:Simon Willison:026/May/10/andrew-quinn/#atom-everything", "title": "Quoting Andrew Quinn", "url": "https://simonwillison.net/2026/May/10/andrew-quinn/#atom-everything", "date": "2026-05-10", "source": "Simon Willison", "tags": []}, {"id": "blog:Simon Willison:/2026/May/9/luke-curley/#atom-everything", "title": "Quoting Luke Curley", "url": "https://simonwillison.net/2026/May/9/luke-curley/#atom-everything", "date": "2026-05-09", "source": "Simon Willison", "tags": []}, {"id": "blog:Hugging Face:https://huggingface.co/blog/allenai/emo", "title": "EMO: Pretraining mixture of experts for emergent modularity", "url": "https://huggingface.co/blog/allenai/emo", "date": "2026-05-08", "source": "Hugging Face", "tags": []}, {"id": "blog:Simon Willison:e-effectiveness-of-html/#atom-everything", "title": "Using Claude Code: The Unreasonable Effectiveness of HTML", "url": "https://simonwillison.net/2026/May/8/unreasonable-effectiveness-of-html/#atom-everything", "date": "2026-05-08", "source": "Simon Willison", "tags": ["llm"]}, {"id": "blog:Hugging Face:iceNow-AI/correctness-before-corrections", "title": "vLLM V0 to V1: Correctness Before Corrections in RL", "url": "https://huggingface.co/blog/ServiceNow-AI/correctness-before-corrections", "date": "2026-05-06", "source": "Hugging Face", "tags": ["agents"]}, {"id": "blog:Hugging Face:o/blog/open-asr-leaderboard-private-data", "title": "Adding Benchmaxxer Repellant to the Open ASR Leaderboard", "url": "https://huggingface.co/blog/open-asr-leaderboard-private-data", "date": "2026-05-06", "source": "Hugging Face", "tags": []}, {"id": "blog:Google Research:-global-partnerships-and-open-resources/", "title": "Catalyzing scientific impact through global partnerships and open resources", "url": "https://research.google/blog/catalyzing-scientific-impact-through-global-partnerships-and-open-resources/", "date": "2026-05-01", "source": "Google Research", "tags": []}, {"id": "blog:Google Research:een-using-empirical-research-assistance/", "title": "Four ways Google Research scientists have been using Empirical Research Assistance", "url": "https://research.google/blog/four-ways-google-research-scientists-have-been-using-empirical-research-assistance/", "date": "2026-04-29", "source": "Google Research", "tags": []}, {"id": "blog:Google Research:about-the-angle-your-photos-re-composed/", "title": "It's all about the angle: Your photos, re-composed", "url": "https://research.google/blog/its-all-about-the-angle-your-photos-re-composed/", "date": "2026-04-22", "source": "Google Research", "tags": []}]} with a JSON blob — that's the entire data layer.
-const DATA = {"generated_at": "2026-05-11T10:26:34.923268+00:00", "arxiv": [{"id": "arxiv:2605.08083v1", "title": "LLMs Improving LLMs: Agentic Discovery for Test-Time Scaling", "url": "https://arxiv.org/abs/2605.08083v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "agents", "applied"]}, {"id": "arxiv:2605.08078v1", "title": "Normalizing Trajectory Models", "url": "https://arxiv.org/abs/2605.08078v1", "date": "2026-05-08", "source": "arXiv", "tags": ["multimodal"]}, {"id": "arxiv:2605.08077v1", "title": "Conformal Path Reasoning: Trustworthy Knowledge Graph Question Answering via Path-Level Calibration", "url": "https://arxiv.org/abs/2605.08077v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm"]}, {"id": "arxiv:2605.08075v1", "title": "Zero-Shot Imagined Speech Decoding via Imagined-to-Listened MEG Mapping", "url": "https://arxiv.org/abs/2605.08075v1", "date": "2026-05-08", "source": "arXiv", "tags": []}, {"id": "arxiv:2605.08074v1", "title": "GRAPHLCP: Structure-Aware Localized Conformal Prediction on Graphs", "url": "https://arxiv.org/abs/2605.08074v1", "date": "2026-05-08", "source": "arXiv", "tags": []}, {"id": "arxiv:2605.08073v1", "title": "EmambaIR: Efficient Visual State Space Model for Event-guided Image Reconstruction", "url": "https://arxiv.org/abs/2605.08073v1", "date": "2026-05-08", "source": "arXiv", "tags": ["multimodal", "applied"]}, {"id": "arxiv:2605.08072v1", "title": "A Note on Non-Negative $L_1$-Approximating Polynomials", "url": "https://arxiv.org/abs/2605.08072v1", "date": "2026-05-08", "source": "arXiv", "tags": []}, {"id": "arxiv:2605.08070v1", "title": "VecCISC: Improving Confidence-Informed Self-Consistency with Reasoning Trace Clustering and Candidate Answer Selection", "url": "https://arxiv.org/abs/2605.08070v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "applied"]}, {"id": "arxiv:2605.08063v1", "title": "Flow-OPD: On-Policy Distillation for Flow Matching Models", "url": "https://arxiv.org/abs/2605.08063v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "multimodal", "agents"]}, {"id": "arxiv:2605.08061v1", "title": "Rubric-Grounded RL: Structured Judge Rewards for Generalizable Reasoning", "url": "https://arxiv.org/abs/2605.08061v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "agents"]}, {"id": "arxiv:2605.08060v1", "title": "The Memory Curse: How Expanded Recall Erodes Cooperative Intent in LLM Agents", "url": "https://arxiv.org/abs/2605.08060v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "agents"]}, {"id": "arxiv:2605.08057v1", "title": "CA-SQL: Complexity-Aware Inference Time Reasoning for Text-to-SQL via Exploration and Compute Budget Allocation", "url": "https://arxiv.org/abs/2605.08057v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "applied"]}, {"id": "arxiv:2605.08053v1", "title": "Reinforcement Learning for Exponential Utility: Algorithms and Convergence in Discounted MDPs", "url": "https://arxiv.org/abs/2605.08053v1", "date": "2026-05-08", "source": "arXiv", "tags": ["agents"]}, {"id": "arxiv:2605.08048v1", "title": "Accurate and Efficient Statistical Testing for Word Semantic Breadth", "url": "https://arxiv.org/abs/2605.08048v1", "date": "2026-05-08", "source": "arXiv", "tags": ["applied"]}, {"id": "arxiv:2605.08045v1", "title": "Uncertainty-Aware Structured Data Extraction from Full CMR Reports via Distilled LLMs", "url": "https://arxiv.org/abs/2605.08045v1", "date": "2026-05-08", "source": "arXiv", "tags": ["applied"]}], "hn": [{"id": "hn:47340079", "title": "Don't post generated/AI-edited comments. HN is for conversation between humans", "url": "https://news.ycombinator.com/newsguidelines.html#generated", "date": "2026-03-11", "source": "Hacker News", "tags": [], "meta": "4229 pts · 1668 comments"}, {"id": "hn:35154527", "title": "GPT-4", "url": "https://openai.com/research/gpt-4", "date": "2023-03-14", "source": "Hacker News", "tags": ["llm"], "meta": "4091 pts · 2507 comments"}, {"id": "hn:40345775", "title": "GPT-4o", "url": "https://openai.com/index/hello-gpt-4o/", "date": "2024-05-13", "source": "Hacker News", "tags": ["llm"], "meta": "3138 pts · 2366 comments"}, {"id": "hn:39526057", "title": "Airfoil", "url": "https://ciechanow.ski/airfoil/", "date": "2024-02-27", "source": "Hacker News", "tags": [], "meta": "2544 pts · 296 comments"}, {"id": "hn:41046773", "title": "Open source AI is the path forward", "url": "https://about.fb.com/news/2024/07/open-source-ai-is-the-path-forward/", "date": "2024-07-23", "source": "Hacker News", "tags": [], "meta": "2360 pts · 887 comments"}, {"id": "hn:44163063", "title": "My AI skeptic friends are all nuts", "url": "https://fly.io/blog/youre-all-nuts/", "date": "2025-06-02", "source": "Hacker News", "tags": [], "meta": "2356 pts · 2826 comments"}, {"id": "hn:46990729", "title": "An AI agent published a hit piece on me", "url": "https://theshamblog.com/an-ai-agent-published-a-hit-piece-on-me/", "date": "2026-02-12", "source": "Hacker News", "tags": ["agents"], "meta": "2346 pts · 951 comments"}, {"id": "hn:46902223", "title": "Claude Opus 4.6", "url": "https://www.anthropic.com/news/claude-opus-4-6", "date": "2026-02-05", "source": "Hacker News", "tags": ["llm"], "meta": "2346 pts · 1031 comments"}, {"id": "hn:38544729", "title": "Gemini AI", "url": "https://deepmind.google/technologies/gemini/", "date": "2023-12-06", "source": "Hacker News", "tags": ["llm"], "meta": "2135 pts · 1602 comments"}, {"id": "hn:43163011", "title": "Claude 3.7 Sonnet and Claude Code", "url": "https://www.anthropic.com/news/claude-3-7-sonnet", "date": "2025-02-24", "source": "Hacker News", "tags": ["llm"], "meta": "2127 pts · 963 comments"}, {"id": "hn:47584540", "title": "Claude Code's source code has been leaked via a map file in their NPM registry", "url": "https://twitter.com/Fried_rice/status/2038894956459290963", "date": "2026-03-31", "source": "Hacker News", "tags": ["llm"], "meta": "2095 pts · 1022 comments"}, {"id": "hn:47136179", "title": "IDF killed Gaza aid workers at point blank range in 2025 massacre: Report", "url": "https://www.dropsitenews.com/p/israeli-soldiers-tel-sultan-gaza-red-crescent-civil-defense-massacre-report-forensic-architecture-earshot", "date": "2026-02-24", "source": "Hacker News", "tags": [], "meta": "2084 pts · 997 comments"}, {"id": "hn:44826997", "title": "GPT-5", "url": "https://openai.com/gpt-5/", "date": "2025-08-07", "source": "Hacker News", "tags": ["llm"], "meta": "2063 pts · 2482 comments"}, {"id": "hn:44063703", "title": "Claude 4", "url": "https://www.anthropic.com/news/claude-4", "date": "2025-05-22", "source": "Hacker News", "tags": ["llm"], "meta": "2013 pts · 1170 comments"}, {"id": "hn:41392128", "title": "Bypassing airport security via SQL injection", "url": "https://ian.sh/tsa", "date": "2024-08-29", "source": "Hacker News", "tags": [], "meta": "2004 pts · 440 comments"}], "blogs": [{"id": "blog:The Decoder:emselves-and-theyre-getting-better-fast/", "title": "AI agents can now hack computers and copy themselves, and they're getting better fast", "url": "https://the-decoder.com/ai-agents-can-now-hack-computers-and-copy-themselves-and-theyre-getting-better-fast/", "date": "2026-05-10", "source": "The Decoder", "tags": []}, {"id": "blog:The Decoder:eligious-leaders-to-seek-ethical-advice/", "title": "Anthropic and OpenAI sit down with religious leaders to seek ethical advice", "url": "https://the-decoder.com/anthropic-and-openai-sit-down-with-religious-leaders-to-seek-ethical-advice/", "date": "2026-05-10", "source": "The Decoder", "tags": []}, {"id": "blog:The Decoder:-ai-expansion-bets-big-on-chinese-chips/", "title": "ByteDance plans over $30 billion for AI expansion, bets big on Chinese chips", "url": "https://the-decoder.com/bytedance-plans-over-30-billion-for-ai-expansion-bets-big-on-chinese-chips/", "date": "2026-05-10", "source": "The Decoder", "tags": []}, {"id": "blog:The Decoder:tworks-warns-of-autonomous-ai-attackers/", "title": "METR says it can barely measure Claude Mythos, Palo Alto Networks warns of autonomous AI attackers", "url": "https://the-decoder.com/metr-says-it-can-barely-measure-claude-mythos-palo-alto-networks-warns-of-autonomous-ai-attackers/", "date": "2026-05-10", "source": "The Decoder", "tags": ["llm", "agents"]}, {"id": "blog:Hugging Face:-ai-amd-developer-hackathon/machinacheck", "title": "MachinaCheck: Building a Multi-Agent CNC Manufacturability System on AMD MI300X", "url": "https://huggingface.co/blog/lablab-ai-amd-developer-hackathon/machinacheck", "date": "2026-05-10", "source": "Hugging Face", "tags": ["agents"]}, {"id": "blog:Simon Willison:york-times-editors-note/#atom-everything", "title": "Quoting New York Times Editors’ Note", "url": "https://simonwillison.net/2026/May/10/new-york-times-editors-note/#atom-everything", "date": "2026-05-10", "source": "Simon Willison", "tags": []}, {"id": "blog:Simon Willison:026/May/10/andrew-quinn/#atom-everything", "title": "Quoting Andrew Quinn", "url": "https://simonwillison.net/2026/May/10/andrew-quinn/#atom-everything", "date": "2026-05-10", "source": "Simon Willison", "tags": []}, {"id": "blog:Simon Willison:/2026/May/9/luke-curley/#atom-everything", "title": "Quoting Luke Curley", "url": "https://simonwillison.net/2026/May/9/luke-curley/#atom-everything", "date": "2026-05-09", "source": "Simon Willison", "tags": []}, {"id": "blog:Hugging Face:https://huggingface.co/blog/allenai/emo", "title": "EMO: Pretraining mixture of experts for emergent modularity", "url": "https://huggingface.co/blog/allenai/emo", "date": "2026-05-08", "source": "Hugging Face", "tags": []}, {"id": "blog:Simon Willison:e-effectiveness-of-html/#atom-everything", "title": "Using Claude Code: The Unreasonable Effectiveness of HTML", "url": "https://simonwillison.net/2026/May/8/unreasonable-effectiveness-of-html/#atom-everything", "date": "2026-05-08", "source": "Simon Willison", "tags": ["llm"]}, {"id": "blog:Hugging Face:iceNow-AI/correctness-before-corrections", "title": "vLLM V0 to V1: Correctness Before Corrections in RL", "url": "https://huggingface.co/blog/ServiceNow-AI/correctness-before-corrections", "date": "2026-05-06", "source": "Hugging Face", "tags": ["agents"]}, {"id": "blog:Hugging Face:o/blog/open-asr-leaderboard-private-data", "title": "Adding Benchmaxxer Repellant to the Open ASR Leaderboard", "url": "https://huggingface.co/blog/open-asr-leaderboard-private-data", "date": "2026-05-06", "source": "Hugging Face", "tags": []}, {"id": "blog:Google Research:-global-partnerships-and-open-resources/", "title": "Catalyzing scientific impact through global partnerships and open resources", "url": "https://research.google/blog/catalyzing-scientific-impact-through-global-partnerships-and-open-resources/", "date": "2026-05-01", "source": "Google Research", "tags": []}, {"id": "blog:Google Research:een-using-empirical-research-assistance/", "title": "Four ways Google Research scientists have been using Empirical Research Assistance", "url": "https://research.google/blog/four-ways-google-research-scientists-have-been-using-empirical-research-assistance/", "date": "2026-04-29", "source": "Google Research", "tags": []}, {"id": "blog:Google Research:about-the-angle-your-photos-re-composed/", "title": "It's all about the angle: Your photos, re-composed", "url": "https://research.google/blog/its-all-about-the-angle-your-photos-re-composed/", "date": "2026-04-22", "source": "Google Research", "tags": []}]};
+// ============================================================================
+// FEED DATA — injected by fetch.py at build time
+// ============================================================================
+const FEED_DATA = {"generated_at": "2026-05-11T10:41:51.356278+00:00", "arxiv": [{"id": "arxiv:2605.08083v1", "title": "LLMs Improving LLMs: Agentic Discovery for Test-Time Scaling", "url": "https://arxiv.org/abs/2605.08083v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "agents", "applied"]}, {"id": "arxiv:2605.08078v1", "title": "Normalizing Trajectory Models", "url": "https://arxiv.org/abs/2605.08078v1", "date": "2026-05-08", "source": "arXiv", "tags": ["multimodal"]}, {"id": "arxiv:2605.08077v1", "title": "Conformal Path Reasoning: Trustworthy Knowledge Graph Question Answering via Path-Level Calibration", "url": "https://arxiv.org/abs/2605.08077v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm"]}, {"id": "arxiv:2605.08075v1", "title": "Zero-Shot Imagined Speech Decoding via Imagined-to-Listened MEG Mapping", "url": "https://arxiv.org/abs/2605.08075v1", "date": "2026-05-08", "source": "arXiv", "tags": []}, {"id": "arxiv:2605.08074v1", "title": "GRAPHLCP: Structure-Aware Localized Conformal Prediction on Graphs", "url": "https://arxiv.org/abs/2605.08074v1", "date": "2026-05-08", "source": "arXiv", "tags": []}, {"id": "arxiv:2605.08073v1", "title": "EmambaIR: Efficient Visual State Space Model for Event-guided Image Reconstruction", "url": "https://arxiv.org/abs/2605.08073v1", "date": "2026-05-08", "source": "arXiv", "tags": ["multimodal", "applied"]}, {"id": "arxiv:2605.08072v1", "title": "A Note on Non-Negative $L_1$-Approximating Polynomials", "url": "https://arxiv.org/abs/2605.08072v1", "date": "2026-05-08", "source": "arXiv", "tags": []}, {"id": "arxiv:2605.08070v1", "title": "VecCISC: Improving Confidence-Informed Self-Consistency with Reasoning Trace Clustering and Candidate Answer Selection", "url": "https://arxiv.org/abs/2605.08070v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "applied"]}, {"id": "arxiv:2605.08063v1", "title": "Flow-OPD: On-Policy Distillation for Flow Matching Models", "url": "https://arxiv.org/abs/2605.08063v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "multimodal", "agents"]}, {"id": "arxiv:2605.08061v1", "title": "Rubric-Grounded RL: Structured Judge Rewards for Generalizable Reasoning", "url": "https://arxiv.org/abs/2605.08061v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "agents"]}, {"id": "arxiv:2605.08060v1", "title": "The Memory Curse: How Expanded Recall Erodes Cooperative Intent in LLM Agents", "url": "https://arxiv.org/abs/2605.08060v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "agents"]}, {"id": "arxiv:2605.08057v1", "title": "CA-SQL: Complexity-Aware Inference Time Reasoning for Text-to-SQL via Exploration and Compute Budget Allocation", "url": "https://arxiv.org/abs/2605.08057v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "applied"]}, {"id": "arxiv:2605.08053v1", "title": "Reinforcement Learning for Exponential Utility: Algorithms and Convergence in Discounted MDPs", "url": "https://arxiv.org/abs/2605.08053v1", "date": "2026-05-08", "source": "arXiv", "tags": ["agents"]}, {"id": "arxiv:2605.08048v1", "title": "Accurate and Efficient Statistical Testing for Word Semantic Breadth", "url": "https://arxiv.org/abs/2605.08048v1", "date": "2026-05-08", "source": "arXiv", "tags": ["applied"]}, {"id": "arxiv:2605.08045v1", "title": "Uncertainty-Aware Structured Data Extraction from Full CMR Reports via Distilled LLMs", "url": "https://arxiv.org/abs/2605.08045v1", "date": "2026-05-08", "source": "arXiv", "tags": ["applied"]}, {"id": "arxiv:2605.08044v1", "title": "Fast Byte Latent Transformer", "url": "https://arxiv.org/abs/2605.08044v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "multimodal", "applied"]}, {"id": "arxiv:2605.08043v1", "title": "SCOPE: Structured Decomposition and Conditional Skill Orchestration for Complex Image Generation", "url": "https://arxiv.org/abs/2605.08043v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "multimodal", "applied"]}, {"id": "arxiv:2605.08037v1", "title": "Beyond Pairs: Your Language Model is Secretly Optimizing a Preference Graph", "url": "https://arxiv.org/abs/2605.08037v1", "date": "2026-05-08", "source": "arXiv", "tags": ["llm", "agents"]}, {"id": "arxiv:2605.08036v1", "title": "Don't Get Your Kroneckers in a Twist: Gaussian Processes on High-Dimensional Incomplete Grids", "url": "https://arxiv.org/abs/2605.08036v1", "date": "2026-05-08", "source": "arXiv", "tags": []}, {"id": "arxiv:2605.08035v1", "title": "PropSplat: Map-Free RF Field Reconstruction via 3D Gaussian Propagation Splatting", "url": "https://arxiv.org/abs/2605.08035v1", "date": "2026-05-08", "source": "arXiv", "tags": ["multimodal"]}], "hn": [{"id": "hn:47340079", "title": "Don't post generated/AI-edited comments. HN is for conversation between humans", "url": "https://news.ycombinator.com/newsguidelines.html#generated", "date": "2026-03-11", "source": "Hacker News", "tags": [], "meta": "4229 pts · 1668 comments"}, {"id": "hn:35154527", "title": "GPT-4", "url": "https://openai.com/research/gpt-4", "date": "2023-03-14", "source": "Hacker News", "tags": ["llm"], "meta": "4091 pts · 2507 comments"}, {"id": "hn:40345775", "title": "GPT-4o", "url": "https://openai.com/index/hello-gpt-4o/", "date": "2024-05-13", "source": "Hacker News", "tags": ["llm"], "meta": "3138 pts · 2366 comments"}, {"id": "hn:39526057", "title": "Airfoil", "url": "https://ciechanow.ski/airfoil/", "date": "2024-02-27", "source": "Hacker News", "tags": [], "meta": "2544 pts · 296 comments"}, {"id": "hn:41046773", "title": "Open source AI is the path forward", "url": "https://about.fb.com/news/2024/07/open-source-ai-is-the-path-forward/", "date": "2024-07-23", "source": "Hacker News", "tags": [], "meta": "2360 pts · 887 comments"}, {"id": "hn:44163063", "title": "My AI skeptic friends are all nuts", "url": "https://fly.io/blog/youre-all-nuts/", "date": "2025-06-02", "source": "Hacker News", "tags": [], "meta": "2356 pts · 2826 comments"}, {"id": "hn:46990729", "title": "An AI agent published a hit piece on me", "url": "https://theshamblog.com/an-ai-agent-published-a-hit-piece-on-me/", "date": "2026-02-12", "source": "Hacker News", "tags": ["agents"], "meta": "2346 pts · 951 comments"}, {"id": "hn:46902223", "title": "Claude Opus 4.6", "url": "https://www.anthropic.com/news/claude-opus-4-6", "date": "2026-02-05", "source": "Hacker News", "tags": ["llm"], "meta": "2346 pts · 1031 comments"}, {"id": "hn:38544729", "title": "Gemini AI", "url": "https://deepmind.google/technologies/gemini/", "date": "2023-12-06", "source": "Hacker News", "tags": ["llm"], "meta": "2135 pts · 1602 comments"}, {"id": "hn:43163011", "title": "Claude 3.7 Sonnet and Claude Code", "url": "https://www.anthropic.com/news/claude-3-7-sonnet", "date": "2025-02-24", "source": "Hacker News", "tags": ["llm"], "meta": "2127 pts · 963 comments"}, {"id": "hn:47584540", "title": "Claude Code's source code has been leaked via a map file in their NPM registry", "url": "https://twitter.com/Fried_rice/status/2038894956459290963", "date": "2026-03-31", "source": "Hacker News", "tags": ["llm"], "meta": "2095 pts · 1022 comments"}, {"id": "hn:47136179", "title": "IDF killed Gaza aid workers at point blank range in 2025 massacre: Report", "url": "https://www.dropsitenews.com/p/israeli-soldiers-tel-sultan-gaza-red-crescent-civil-defense-massacre-report-forensic-architecture-earshot", "date": "2026-02-24", "source": "Hacker News", "tags": [], "meta": "2084 pts · 997 comments"}, {"id": "hn:44826997", "title": "GPT-5", "url": "https://openai.com/gpt-5/", "date": "2025-08-07", "source": "Hacker News", "tags": ["llm"], "meta": "2063 pts · 2482 comments"}, {"id": "hn:44063703", "title": "Claude 4", "url": "https://www.anthropic.com/news/claude-4", "date": "2025-05-22", "source": "Hacker News", "tags": ["llm"], "meta": "2013 pts · 1170 comments"}, {"id": "hn:41392128", "title": "Bypassing airport security via SQL injection", "url": "https://ian.sh/tsa", "date": "2024-08-29", "source": "Hacker News", "tags": [], "meta": "2004 pts · 440 comments"}, {"id": "hn:47793411", "title": "Claude Opus 4.7", "url": "https://www.anthropic.com/news/claude-opus-4-7", "date": "2026-04-16", "source": "Hacker News", "tags": ["llm"], "meta": "1959 pts · 1452 comments"}, {"id": "hn:44567857", "title": "LLM Inevitabilism", "url": "https://tomrenner.com/posts/llm-inevitabilism/", "date": "2025-07-15", "source": "Hacker News", "tags": ["llm"], "meta": "1773 pts · 1628 comments"}, {"id": "hn:41523070", "title": "Learning to Reason with LLMs", "url": "https://openai.com/index/learning-to-reason-with-llms/", "date": "2024-09-12", "source": "Hacker News", "tags": [], "meta": "1654 pts · 1261 comments"}, {"id": "hn:38505211", "title": "LLM Visualization", "url": "https://bbycroft.net/llm", "date": "2023-12-03", "source": "Hacker News", "tags": ["llm"], "meta": "1592 pts · 131 comments"}, {"id": "hn:45415962", "title": "Claude Sonnet 4.5", "url": "https://www.anthropic.com/news/claude-sonnet-4-5", "date": "2025-09-29", "source": "Hacker News", "tags": ["llm"], "meta": "1585 pts · 786 comments"}], "labs": [{"id": "src:Hugging Face:log/lablab-ai-amd-developer-hackathon/machinacheck", "title": "MachinaCheck: Building a Multi-Agent CNC Manufacturability System on AMD MI300X", "url": "https://huggingface.co/blog/lablab-ai-amd-developer-hackathon/machinacheck", "date": "2026-05-10", "source": "Hugging Face", "tags": ["agents"]}, {"id": "src:The Decoder:nd-copy-themselves-and-theyre-getting-better-fast/", "title": "AI agents can now hack computers and copy themselves, and they're getting better fast", "url": "https://the-decoder.com/ai-agents-can-now-hack-computers-and-copy-themselves-and-theyre-getting-better-fast/", "date": "2026-05-10", "source": "The Decoder", "tags": []}, {"id": "src:The Decoder:own-with-religious-leaders-to-seek-ethical-advice/", "title": "Anthropic and OpenAI sit down with religious leaders to seek ethical advice", "url": "https://the-decoder.com/anthropic-and-openai-sit-down-with-religious-leaders-to-seek-ethical-advice/", "date": "2026-05-10", "source": "The Decoder", "tags": []}, {"id": "src:The Decoder:illion-for-ai-expansion-bets-big-on-chinese-chips/", "title": "ByteDance plans over $30 billion for AI expansion, bets big on Chinese chips", "url": "https://the-decoder.com/bytedance-plans-over-30-billion-for-ai-expansion-bets-big-on-chinese-chips/", "date": "2026-05-10", "source": "The Decoder", "tags": []}, {"id": "src:Hugging Face:https://huggingface.co/blog/allenai/emo", "title": "EMO: Pretraining mixture of experts for emergent modularity", "url": "https://huggingface.co/blog/allenai/emo", "date": "2026-05-08", "source": "Hugging Face", "tags": []}, {"id": "src:Hugging Face:/blog/ServiceNow-AI/correctness-before-corrections", "title": "vLLM V0 to V1: Correctness Before Corrections in RL", "url": "https://huggingface.co/blog/ServiceNow-AI/correctness-before-corrections", "date": "2026-05-06", "source": "Hugging Face", "tags": ["agents"]}, {"id": "src:Google Research:ct-through-global-partnerships-and-open-resources/", "title": "Catalyzing scientific impact through global partnerships and open resources", "url": "https://research.google/blog/catalyzing-scientific-impact-through-global-partnerships-and-open-resources/", "date": "2026-05-01", "source": "Google Research", "tags": []}, {"id": "src:Google Research:sts-have-been-using-empirical-research-assistance/", "title": "Four ways Google Research scientists have been using Empirical Research Assistance", "url": "https://research.google/blog/four-ways-google-research-scientists-have-been-using-empirical-research-assistance/", "date": "2026-04-29", "source": "Google Research", "tags": []}, {"id": "src:Google Research:g/its-all-about-the-angle-your-photos-re-composed/", "title": "It's all about the angle: Your photos, re-composed", "url": "https://research.google/blog/its-all-about-the-angle-your-photos-re-composed/", "date": "2026-04-22", "source": "Google Research", "tags": []}], "researchers": [{"id": "src:Simon Willison:ay/10/new-york-times-editors-note/#atom-everything", "title": "Quoting New York Times Editors’ Note", "url": "https://simonwillison.net/2026/May/10/new-york-times-editors-note/#atom-everything", "date": "2026-05-10", "source": "Simon Willison", "tags": []}, {"id": "src:Simon Willison:ison.net/2026/May/10/andrew-quinn/#atom-everything", "title": "Quoting Andrew Quinn", "url": "https://simonwillison.net/2026/May/10/andrew-quinn/#atom-everything", "date": "2026-05-10", "source": "Simon Willison", "tags": []}, {"id": "src:Simon Willison:llison.net/2026/May/9/luke-curley/#atom-everything", "title": "Quoting Luke Curley", "url": "https://simonwillison.net/2026/May/9/luke-curley/#atom-everything", "date": "2026-05-09", "source": "Simon Willison", "tags": []}, {"id": "src:Nathan Lambert (Interconnects):nterconnects.ai/p/notes-from-inside-chinas-ai-labs", "title": "Notes from inside China's AI labs", "url": "https://www.interconnects.ai/p/notes-from-inside-chinas-ai-labs", "date": "2026-05-07", "source": "Nathan Lambert (Interconnects)", "tags": []}, {"id": "src:Nathan Lambert (Interconnects):ps://www.interconnects.ai/p/the-distillation-panic", "title": "The distillation panic", "url": "https://www.interconnects.ai/p/the-distillation-panic", "date": "2026-05-04", "source": "Nathan Lambert (Interconnects)", "tags": []}, {"id": "src:Nathan Lambert (Interconnects):nnects.ai/p/reading-todays-open-closed-performance", "title": "Reading today's open-closed performance gap", "url": "https://www.interconnects.ai/p/reading-todays-open-closed-performance", "date": "2026-04-20", "source": "Nathan Lambert (Interconnects)", "tags": []}, {"id": "src:Sebastian Raschka:stianraschka.com/p/workflow-for-understanding-llms", "title": "My Workflow for Understanding LLM Architectures", "url": "https://magazine.sebastianraschka.com/p/workflow-for-understanding-llms", "date": "2026-04-18", "source": "Sebastian Raschka", "tags": ["llm"]}, {"id": "src:Sebastian Raschka:ebastianraschka.com/p/components-of-a-coding-agent", "title": "Components of A Coding Agent", "url": "https://magazine.sebastianraschka.com/p/components-of-a-coding-agent", "date": "2026-04-04", "source": "Sebastian Raschka", "tags": ["agents"]}, {"id": "src:Sebastian Raschka:e.sebastianraschka.com/p/visual-attention-variants", "title": "A Visual Guide to Attention Variants in Modern LLMs", "url": "https://magazine.sebastianraschka.com/p/visual-attention-variants", "date": "2026-03-22", "source": "Sebastian Raschka", "tags": []}, {"id": "src:Andrej Karpathy:http://karpathy.github.io/2026/02/12/microgpt/", "title": "microgpt", "url": "http://karpathy.github.io/2026/02/12/microgpt/", "date": "2026-02-12", "source": "Andrej Karpathy", "tags": []}, {"id": "src:Lil'Log (Lilian Weng):://lilianweng.github.io/posts/2025-05-01-thinking/", "title": "Why We Think", "url": "https://lilianweng.github.io/posts/2025-05-01-thinking/", "date": "2025-05-01", "source": "Lil'Log (Lilian Weng)", "tags": []}, {"id": "src:Lil'Log (Lilian Weng):ianweng.github.io/posts/2024-11-28-reward-hacking/", "title": "Reward Hacking in Reinforcement Learning", "url": "https://lilianweng.github.io/posts/2024-11-28-reward-hacking/", "date": "2024-11-28", "source": "Lil'Log (Lilian Weng)", "tags": ["agents"]}, {"id": "src:Lil'Log (Lilian Weng):lianweng.github.io/posts/2024-07-07-hallucination/", "title": "Extrinsic Hallucinations in LLMs", "url": "https://lilianweng.github.io/posts/2024-07-07-hallucination/", "date": "2024-07-07", "source": "Lil'Log (Lilian Weng)", "tags": []}, {"id": "src:Andrej Karpathy:http://karpathy.github.io/2022/03/14/lecun1989/", "title": "Deep Neural Nets: 33 years ago and 33 years from now", "url": "http://karpathy.github.io/2022/03/14/lecun1989/", "date": "2022-03-14", "source": "Andrej Karpathy", "tags": []}, {"id": "src:Andrej Karpathy:http://karpathy.github.io/2021/06/21/blockchain/", "title": "A from-scratch tour of Bitcoin in Python", "url": "http://karpathy.github.io/2021/06/21/blockchain/", "date": "2021-06-21", "source": "Andrej Karpathy", "tags": []}], "substacks": [{"id": "src:Import AI (Jack Clark):ubstack.com/p/import-ai-455-automating-ai-research", "title": "Import AI 455: AI systems are about to start building themselves.", "url": "https://importai.substack.com/p/import-ai-455-automating-ai-research", "date": "2026-05-04", "source": "Import AI (Jack Clark)", "tags": []}, {"id": "src:Import AI (Jack Clark):.substack.com/p/import-ai-454-automating-alignment", "title": "Import AI 454: Automating alignment research; safety study of a Chinese model; HiFloat4", "url": "https://importai.substack.com/p/import-ai-454-automating-alignment", "date": "2026-04-20", "source": "Import AI (Jack Clark)", "tags": []}, {"id": "src:AI Snake Oil:rmaltech.ai/p/open-world-evaluations-for-measuring", "title": "Open-world evaluations for measuring frontier AI capabilities", "url": "https://www.normaltech.ai/p/open-world-evaluations-for-measuring", "date": "2026-04-16", "source": "AI Snake Oil", "tags": []}, {"id": "src:Import AI (Jack Clark):ai.substack.com/p/import-ai-453-breaking-ai-agents", "title": "Import AI 453: Breaking AI agents; MirrorCode; and ten views on gradual disempowerment", "url": "https://importai.substack.com/p/import-ai-453-breaking-ai-agents", "date": "2026-04-13", "source": "Import AI (Jack Clark)", "tags": []}, {"id": "src:AI Snake Oil:.normaltech.ai/p/new-paper-towards-a-science-of-ai", "title": "New Paper: Towards a science of AI agent reliability", "url": "https://www.normaltech.ai/p/new-paper-towards-a-science-of-ai", "date": "2026-02-24", "source": "AI Snake Oil", "tags": ["agents"]}, {"id": "src:AI Snake Oil:w.normaltech.ai/p/ai-wont-automatically-make-legal", "title": "AI Won’t Automatically Make Legal Services Cheaper", "url": "https://www.normaltech.ai/p/ai-wont-automatically-make-legal", "date": "2026-02-12", "source": "AI Snake Oil", "tags": []}], "conferences": [{"id": "conf:2605.06900v1", "title": "Accelerated Relax-and-Round for Concave Coverage Problems", "url": "https://arxiv.org/abs/2605.06900v1", "date": "2026-05-07", "source": "NeurIPS / ICML / ICLR (arXiv)", "tags": ["agents"]}, {"id": "conf:2605.04895v1", "title": "Regime-Conditioned Evaluation in Multi-Context Bayesian Optimization", "url": "https://arxiv.org/abs/2605.04895v1", "date": "2026-05-06", "source": "NeurIPS / ICML / ICLR (arXiv)", "tags": ["applied"]}, {"id": "conf:2604.18555v1", "title": "A Note on TurboQuant and the Earlier DRIVE/EDEN Line of Work", "url": "https://arxiv.org/abs/2604.18555v1", "date": "2026-04-20", "source": "NeurIPS / ICML / ICLR (arXiv)", "tags": []}, {"id": "conf:2604.16723v1", "title": "Debate as Reward: A Multi-Agent Reward System for Scientific Ideation via RL Post-Training", "url": "https://arxiv.org/abs/2604.16723v1", "date": "2026-04-17", "source": "NeurIPS / ICML / ICLR (arXiv)", "tags": ["agents"]}, {"id": "conf:2604.12952v1", "title": "An Optimal Sauer Lemma Over $k$-ary Alphabets", "url": "https://arxiv.org/abs/2604.12952v1", "date": "2026-04-14", "source": "NeurIPS / ICML / ICLR (arXiv)", "tags": []}, {"id": "conf:2604.09034v1", "title": "The nextAI Solution to the NeurIPS 2023 LLM Efficiency Challenge", "url": "https://arxiv.org/abs/2604.09034v1", "date": "2026-04-10", "source": "NeurIPS / ICML / ICLR (arXiv)", "tags": ["llm", "applied"]}, {"id": "conf:2604.02555v1", "title": "Robust Learning with Optimal Error", "url": "https://arxiv.org/abs/2604.02555v1", "date": "2026-04-02", "source": "NeurIPS / ICML / ICLR (arXiv)", "tags": []}, {"id": "conf:2604.14162v1", "title": "Decoupling Scores and Text: The Politeness Principle in Peer Review", "url": "https://arxiv.org/abs/2604.14162v1", "date": "2026-03-23", "source": "NeurIPS / ICML / ICLR (arXiv)", "tags": []}, {"id": "conf:2603.15563v2", "title": "The PokeAgent Challenge: Competitive and Long-Context Learning at Scale", "url": "https://arxiv.org/abs/2603.15563v2", "date": "2026-03-16", "source": "NeurIPS / ICML / ICLR (arXiv)", "tags": ["llm", "agents", "applied"]}, {"id": "conf:2603.06851v1", "title": "Bilateral Trade Under Heavy-Tailed Valuations: Minimax Regret with Infinite Variance", "url": "https://arxiv.org/abs/2603.06851v1", "date": "2026-03-06", "source": "NeurIPS / ICML / ICLR (arXiv)", "tags": []}]};
+const BUILT_AT = "11 May 2026 · 10:41 UTC";
 
-const TRACK_NAMES = { llm: 'LLM', multimodal: 'MULTIMODAL', agents: 'AGENTS', applied: 'APPLIED' };
+// ============================================================================
+// STATE
+// ============================================================================
+const STATE_KEY = 'fieldnotes:state';
+const SYNC_KEY = 'fieldnotes:sync';
+let state = {
+  done: {}, notes: {}, saved: [], concepts: {},
+  quiz: { score: 0, count: 0, answered: {} },
+  streak: { current: 0, lastVisit: null, history: {} }
+};
+let syncConfig = { url: '', code: '', enabled: false };
+let syncTimer = null;
 
-function renderFeed(containerId, items, countId) {
-  const container = document.getElementById(containerId);
-  const filtered = activeFilter === 'all'
-    ? items
-    : items.filter(it => (it.tags || []).includes(activeFilter));
+// ============================================================================
+// STORAGE: localStorage + optional Cloudflare Worker
+// ============================================================================
+function loadStateLocal() {
+  try {
+    const raw = localStorage.getItem(STATE_KEY);
+    if (raw) state = { ...state, ...JSON.parse(raw) };
+    const sync = localStorage.getItem(SYNC_KEY);
+    if (sync) syncConfig = { ...syncConfig, ...JSON.parse(sync) };
+  } catch (e) { console.warn('local load failed', e); }
+}
 
-  document.getElementById(countId).textContent = filtered.length + ' / ' + items.length;
+function saveStateLocal() {
+  try { localStorage.setItem(STATE_KEY, JSON.stringify(state)); } catch (e) {}
+}
 
-  if (!items.length) {
-    container.innerHTML = `<div class="empty-state">Feed unavailable at build time.</div>`;
-    return;
+async function pullFromCloud() {
+  if (!syncConfig.enabled || !syncConfig.url || !syncConfig.code) return;
+  try {
+    const res = await fetch(`${syncConfig.url}/state?code=${encodeURIComponent(syncConfig.code)}`);
+    if (!res.ok) throw new Error('http ' + res.status);
+    const remote = await res.json();
+    if (remote && remote.done !== undefined) {
+      // Merge: take the union of completion, prefer later timestamps for state.streak.lastVisit
+      state = remote;
+      saveStateLocal();
+      renderAll();
+      showToast('✓ PULLED FROM CLOUD');
+      setSyncBadge(true);
+    }
+  } catch (e) {
+    console.warn('pull failed:', e);
+    showToast('⚠ SYNC PULL FAILED — USING LOCAL');
+    setSyncBadge(false, true);
   }
-  if (!filtered.length) {
-    container.innerHTML = `<div class="empty-state">No items match "${activeFilter}" — try another track.</div>`;
-    return;
+}
+
+async function pushToCloud() {
+  if (!syncConfig.enabled || !syncConfig.url || !syncConfig.code) return;
+  // Debounce: defer pushes by 1.5s so rapid clicks coalesce
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(async () => {
+    try {
+      const res = await fetch(`${syncConfig.url}/state?code=${encodeURIComponent(syncConfig.code)}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(state)
+      });
+      if (!res.ok) throw new Error('http ' + res.status);
+      setSyncBadge(true);
+    } catch (e) {
+      console.warn('push failed:', e);
+      setSyncBadge(false, true);
+    }
+  }, 1500);
+}
+
+function saveState() {
+  saveStateLocal();
+  pushToCloud();
+}
+
+function setSyncBadge(ok, err) {
+  const btn = document.getElementById('sync-btn');
+  if (!syncConfig.enabled) { btn.textContent = 'SYNC: OFF'; btn.classList.remove('synced'); return; }
+  if (err) { btn.textContent = 'SYNC: ERR'; btn.classList.remove('synced'); return; }
+  btn.textContent = ok ? 'SYNC: ✓' : 'SYNC: ON';
+  btn.classList.toggle('synced', !!ok);
+}
+
+function openSync() {
+  document.getElementById('sync-url').value = syncConfig.url || '';
+  document.getElementById('sync-code').value = syncConfig.code || '';
+  document.getElementById('sync-modal').classList.add('open');
+}
+function closeSync() { document.getElementById('sync-modal').classList.remove('open'); }
+
+async function enableSync() {
+  const url = document.getElementById('sync-url').value.trim().replace(/\/$/, '');
+  const code = document.getElementById('sync-code').value.trim();
+  if (!url || !code) { showToast('⚠ NEED URL AND CODE'); return; }
+  syncConfig = { url, code, enabled: true };
+  localStorage.setItem(SYNC_KEY, JSON.stringify(syncConfig));
+  closeSync();
+  showToast('SYNC ENABLED — TRYING CLOUD…');
+  // First, try to PULL — if there's existing state on the worker, prefer it
+  try {
+    const res = await fetch(`${url}/state?code=${encodeURIComponent(code)}`);
+    if (res.ok) {
+      const remote = await res.json();
+      if (remote && remote.done !== undefined && Object.keys(remote.done).length > 0) {
+        state = remote;
+        saveStateLocal();
+        renderAll();
+        setSyncBadge(true);
+        showToast('✓ MERGED FROM CLOUD');
+        return;
+      }
+    }
+  } catch (e) {}
+  // No remote state → push local up
+  await pushToCloud();
+  setSyncBadge(true);
+  showToast('✓ PUSHED LOCAL TO CLOUD');
+}
+
+function disableSync() {
+  syncConfig.enabled = false;
+  localStorage.setItem(SYNC_KEY, JSON.stringify(syncConfig));
+  setSyncBadge(false);
+  closeSync();
+  showToast('SYNC DISABLED — LOCAL ONLY');
+}
+
+// ============================================================================
+// STREAK
+// ============================================================================
+function todayKey() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function daysBetween(a, b) { return Math.round((new Date(b) - new Date(a)) / 86400000); }
+function updateStreak() {
+  const today = todayKey();
+  const last = state.streak.lastVisit;
+  if (last === today) return;
+  if (!last) state.streak.current = 1;
+  else {
+    const gap = daysBetween(last, today);
+    if (gap === 1) state.streak.current += 1;
+    else if (gap > 1) state.streak.current = 1;
   }
-  container.innerHTML = filtered.map(it => {
-    const tagStr = (it.tags || []).length ? ' · ' + it.tags.map(t => TRACK_NAMES[t] || t.toUpperCase()).join(' · ') : '';
-    const metaStr = it.meta ? ` · ${it.meta}` : '';
-    return `
-      <div class="feed-item">
-        <a href="${it.url}" target="_blank" rel="noopener">
-          <h4>${escapeHtml(it.title)}</h4>
-          <div class="meta-line">${it.date || ''} · ${it.source}${metaStr}${tagStr}</div>
-        </a>
+  state.streak.lastVisit = today;
+  state.streak.history[today] = state.streak.history[today] || 0;
+  saveState();
+}
+function markActivity() {
+  const today = todayKey();
+  state.streak.history[today] = (state.streak.history[today] || 0) + 1;
+  saveState();
+  renderStatusBar();
+}
+
+// ============================================================================
+// DATA: concepts, epochs, picks, quiz
+// ============================================================================
+const concepts = [
+  { id: 'c1', tag: 'CONCEPT 01', title: 'RLHF & DPO', body: 'How raw next-token predictors became polite assistants.' },
+  { id: 'c2', tag: 'CONCEPT 02', title: 'Chain-of-thought & reasoning models', body: 'o1, R1, Claude\'s extended thinking — letting the model think out loud is its own subfield.' },
+  { id: 'c3', tag: 'CONCEPT 03', title: 'Mixture-of-Experts (MoE)', body: 'Why DeepSeek and most frontier models activate only a fraction of their parameters per token.' },
+  { id: 'c4', tag: 'CONCEPT 04', title: 'Tool use & agents', body: 'ReAct, function calling, MCP, computer-use — the loop that turned chatbots into colleagues.' },
+  { id: 'c5', tag: 'CONCEPT 05', title: 'Vision-Language Models', body: 'CLIP was the seed. GPT-4V, Llama 3.2 Vision, Qwen-VL are the tree.' }
+];
+
+const epochs = [
+  { year: '2022', label: 'Alignment Era', title: 'Alignment — when models started behaving',
+    summary: 'You left ML when GPT-3 was raw and a bit unhinged. This is the year three techniques — instruction tuning, RLHF, and chain-of-thought prompting — turned next-token predictors into something you could trust. ChatGPT lands in November and the world resets.',
+    resources: [
+      { id: 'r22a', type: 'paper', title: 'Training language models to follow instructions with human feedback (InstructGPT)', author: 'Ouyang et al., OpenAI', url: 'https://arxiv.org/abs/2203.02155', duration: '90 min', note: 'The RLHF paper. Read sections 1–3 carefully.' },
+      { id: 'r22b', type: 'paper', title: 'Chain-of-Thought Prompting Elicits Reasoning in Large Language Models', author: 'Wei et al., Google', url: 'https://arxiv.org/abs/2201.11903', duration: '45 min', note: 'Short, foundational. Read it.' },
+      { id: 'r22c', type: 'blog', title: 'Illustrated RLHF', author: 'Hugging Face', url: 'https://huggingface.co/blog/rlhf', duration: '40 min', note: 'Clearest visual explainer of the InstructGPT pipeline.' },
+      { id: 'r22d', type: 'video', title: 'State of GPT', author: 'Andrej Karpathy', url: 'https://www.youtube.com/watch?v=bZQun8Y4L2A', duration: '42 min', note: 'Collapses 18 months of progress into one talk.' }
+    ] },
+  { year: '2023', label: 'Multimodal & Open', title: 'Multimodal arrives, open models catch up',
+    summary: 'GPT-4 is released and within months it can see. Meta drops Llama, and the open-weight ecosystem detonates. Vector databases, RAG, and fine-tuning become standard plumbing.',
+    resources: [
+      { id: 'r23a', type: 'paper', title: 'GPT-4 Technical Report', author: 'OpenAI', url: 'https://arxiv.org/abs/2303.08774', duration: '60 min', note: 'Read pages 1–20.' },
+      { id: 'r23b', type: 'paper', title: 'LLaMA: Open and Efficient Foundation Language Models', author: 'Touvron et al., Meta', url: 'https://arxiv.org/abs/2302.13971', duration: '50 min', note: 'The paper that made open-weight competitive.' },
+      { id: 'r23c', type: 'paper', title: 'Direct Preference Optimization (DPO)', author: 'Rafailov et al., Stanford', url: 'https://arxiv.org/abs/2305.18290', duration: '60 min', note: 'RLHF without the RL. Standard now.' },
+      { id: 'r23d', type: 'blog', title: 'What Are Embeddings?', author: 'Vicki Boykis', url: 'https://vickiboykis.com/what_are_embeddings/', duration: '90 min', note: 'A book-length essay. The single best resource on embeddings.' },
+      { id: 'r23e', type: 'video', title: "Let's build GPT: from scratch, in code", author: 'Andrej Karpathy', url: 'https://www.youtube.com/watch?v=kCc8FmEb1nY', duration: '2 hr', note: "Code along. You'll never look at a transformer the same way." }
+    ] },
+  { year: '2024', label: 'Scaling & Long Context', title: 'Scale, long context, and the first reasoning model',
+    summary: 'Context windows balloon from 4K to 1M+ tokens. MoE goes mainstream with Mixtral and DeepSeek. In September, OpenAI ships o1 — the first model that "thinks" before answering.',
+    resources: [
+      { id: 'r24a', type: 'paper', title: 'Mixtral of Experts', author: 'Mistral AI', url: 'https://arxiv.org/abs/2401.04088', duration: '45 min', note: 'Cleanest introduction to MoE.' },
+      { id: 'r24b', type: 'paper', title: 'Gemini 1.5: Long context', author: 'Google DeepMind', url: 'https://arxiv.org/abs/2403.05530', duration: '60 min', note: 'How a 1M+ token context window works.' },
+      { id: 'r24c', type: 'blog', title: 'Learning to Reason with LLMs (o1)', author: 'OpenAI', url: 'https://openai.com/index/learning-to-reason-with-llms/', duration: '20 min', note: 'Read it for the framing.' },
+      { id: 'r24d', type: 'paper', title: 'DeepSeek-R1', author: 'DeepSeek AI', url: 'https://arxiv.org/abs/2501.12948', duration: '90 min', note: 'Open-source answer to o1, transparent recipe.' },
+      { id: 'r24e', type: 'video', title: 'Deep Dive into LLMs like ChatGPT', author: 'Andrej Karpathy', url: 'https://www.youtube.com/watch?v=7xTGNNLPyMI', duration: '3h 30m', note: 'Block out an evening.' }
+    ] },
+  { year: '2025', label: 'Agents & Tool Use', title: 'Agents stop being a demo',
+    summary: 'Tool calling matures. Anthropic ships MCP. Computer-use agents become viable. Applied ML teams stop training models and start orchestrating them.',
+    resources: [
+      { id: 'r25a', type: 'paper', title: 'ReAct: Reasoning + Acting', author: 'Yao et al.', url: 'https://arxiv.org/abs/2210.03629', duration: '45 min', note: 'Every agent framework today traces to it.' },
+      { id: 'r25b', type: 'blog', title: 'Building effective agents', author: 'Anthropic', url: 'https://www.anthropic.com/research/building-effective-agents', duration: '30 min', note: 'Most-shared agent guide of 2025.' },
+      { id: 'r25c', type: 'blog', title: 'Model Context Protocol — Introduction', author: 'modelcontextprotocol.io', url: 'https://modelcontextprotocol.io/introduction', duration: '20 min', note: 'Open protocol becoming industry standard.' },
+      { id: 'r25d', type: 'paper', title: 'SWE-bench', author: 'Jimenez et al., Princeton', url: 'https://arxiv.org/abs/2310.06770', duration: '60 min', note: 'The benchmark everyone reports.' },
+      { id: 'r25e', type: 'video', title: 'How I use LLMs', author: 'Andrej Karpathy', url: 'https://www.youtube.com/watch?v=EWvNQjAaOHw', duration: '2h 7m', note: 'Practical, current, opinionated.' }
+    ] },
+  { year: '2026', label: 'Now — Frontier', title: 'Where the field actually is',
+    summary: 'World models, native multimodal training, and agents that operate autonomously for days are no longer papers — they ship. Use §02 for daily delta.',
+    resources: [
+      { id: 'r26a', type: 'blog', title: 'AI Index Report', author: 'Stanford HAI', url: 'https://hai.stanford.edu/ai-index', duration: '2 hr (skim)', note: 'Single best annual snapshot.' },
+      { id: 'r26b', type: 'blog', title: 'Situational Awareness', author: 'Leopold Aschenbrenner', url: 'https://situational-awareness.ai/', duration: '4 hr', note: 'Controversial; read for the AGI-timeline argument.' },
+      { id: 'r26c', type: 'paper', title: 'Survey of LLM Agents', author: 'arXiv', url: 'https://arxiv.org/abs/2308.11432', duration: '90 min', note: 'Living survey.' },
+      { id: 'r26d', type: 'video', title: 'NeurIPS 2025 Keynotes', author: 'NeurIPS', url: 'https://www.youtube.com/@NeurIPSConf/videos', duration: 'pick 1–2', note: 'Easiest sample of the research frontier.' },
+      { id: 'r26e', type: 'blog', title: "Lilian Weng — Lil'Log", author: 'lilianweng.github.io', url: 'https://lilianweng.github.io/', duration: 'ongoing', note: 'Clearest technical writer in the field.' }
+    ] }
+];
+
+const allResources = epochs.flatMap(e => e.resources.map(r => ({...r, epoch: e.year})));
+const totalResources = allResources.length;
+
+const quiz = [
+  { q: 'What does RLHF stand for, and what problem does it solve?', options: [
+    { t: 'Recursive Loss Heuristic Function — speeds up gradient descent', c: false },
+    { t: 'Reinforcement Learning from Human Feedback — aligns model outputs with human preferences', c: true },
+    { t: 'Random Layer Hyperparameter Fitting — auto-tunes architecture', c: false },
+    { t: 'Real-time Latency Hardware Filtering — serving-side optimization', c: false }
+  ], explain: 'RLHF trains a reward model on human preferences, then fine-tunes the LLM (with PPO or DPO) to maximize that reward. It is what turned GPT-3 into ChatGPT.' },
+  { q: 'Why does an MoE model with 671B parameters sometimes run as fast as a 37B dense model?', options: [
+    { t: 'It uses 4-bit quantization on the larger experts', c: false },
+    { t: 'Only a small subset of experts activates per token — active parameter count is much smaller than total', c: true },
+    { t: 'Experts run in parallel across GPUs', c: false },
+    { t: 'It caches results to skip computation', c: false }
+  ], explain: 'MoE routes each token to a small number of experts. DeepSeek-V3 has 671B total but only 37B active per token, so FLOPs per token are governed by the active count.' },
+  { q: 'Key difference between DPO and RLHF?', options: [
+    { t: 'DPO uses synthetic data, RLHF uses human data', c: false },
+    { t: 'DPO is faster to inference, RLHF is faster to train', c: false },
+    { t: 'DPO skips the reward model and RL step, optimizing the policy directly from preference pairs with a classification-style loss', c: true },
+    { t: 'DPO only works on small models', c: false }
+  ], explain: 'DPO reformulates RLHF as supervised classification over preference pairs. No reward model, no PPO. Standard for most open-weight fine-tuning today.' },
+  { q: 'A reasoning model like o1 or DeepSeek-R1 mainly differs from a standard LLM because it…', options: [
+    { t: 'Has more parameters', c: false },
+    { t: 'Is post-trained to generate long internal chains of thought before answering, trading latency for accuracy', c: true },
+    { t: 'Uses a non-transformer architecture', c: false },
+    { t: 'Can browse the web during inference', c: false }
+  ], explain: 'Reasoning models are post-trained (often with RL) to produce long internal monologues before answering. Sharpens math/coding/logic at the cost of latency.' },
+  { q: 'What is ReAct, and why does it matter?', options: [
+    { t: 'A JavaScript UI framework', c: false },
+    { t: 'A pattern interleaving Reasoning and Acting — Thought → Action → Observation loop — the core of every modern agent', c: true },
+    { t: 'A regularization technique', c: false },
+    { t: 'A benchmark for task completion', c: false }
+  ], explain: 'ReAct (Yao et al. 2022) is the simple idea: Thought → Action → Observation → loop. LangChain, AutoGPT, Claude tool use, OpenAI Assistants — all implement variants.' },
+  { q: 'Why does RAG exist?', options: [
+    { t: 'LLMs are too slow without caching', c: false },
+    { t: 'LLM weights are static; RAG injects fresh/relevant text into context at query time, grounding the model in current or domain data', c: true },
+    { t: 'Required by GDPR', c: false },
+    { t: 'Reduces parameter count', c: false }
+  ], explain: 'RAG fetches relevant docs via vector similarity, stuffs them into context before generation. How you make an LLM "know" private docs or current events without fine-tuning.' },
+  { q: 'CLIP is foundational because it…', options: [
+    { t: 'Was the first transformer for images', c: false },
+    { t: 'Learned a joint embedding space for images and text via contrastive training on 400M pairs, enabling zero-shot classification', c: true },
+    { t: 'Introduced the diffusion objective', c: false },
+    { t: 'Was the first open-source OpenAI model', c: false }
+  ], explain: 'CLIP\'s contrastive image-text training is the seed of the modern multimodal era. Stable Diffusion uses CLIP text encoders. DALL-E 2 was built on it.' },
+  { q: 'What does a 1M token context enable that 4K doesn\'t?', options: [
+    { t: 'Faster inference', c: false },
+    { t: 'More parameters', c: false },
+    { t: 'Whole codebases, multi-hour transcripts, books in a single prompt — at quadratic attention cost unless special architectures help', c: true },
+    { t: 'Longer outputs (same thing as context)', c: false }
+  ], explain: 'Context = input tokens. Output length is separate. 1M context enables whole-codebase analysis, long-doc QA, many-shot prompting. Quadratic cost mitigated by ring/sparse attention.' },
+  { q: 'Model Context Protocol (MCP) is…', options: [
+    { t: 'A new architecture', c: false },
+    { t: 'A licensing scheme', c: false },
+    { t: 'An open protocol from Anthropic for standardizing how AI assistants connect to external tools/data — like LSP did for editors', c: true },
+    { t: 'A benchmark', c: false }
+  ], explain: 'MCP is to agents what LSP was to editors: a standard way to discover and call tools across services. Becoming industry standard.' },
+  { q: 'SWE-bench matters because it…', options: [
+    { t: 'Measures latency', c: false },
+    { t: 'Tests whether models can resolve real GitHub issues from popular Python repos — real-world software engineering', c: true },
+    { t: 'Compares synthetic-problem completion quality', c: false },
+    { t: 'Is the only benchmark using unit tests', c: false }
+  ], explain: 'Unlike HumanEval (toy), SWE-bench draws from real GitHub issues with real test suites. "X% on SWE-bench Verified" is the de-facto coding-agent signal.' },
+  { q: 'Why is fine-tuning less central than in 2021?', options: [
+    { t: 'Modern models too large to fine-tune', c: false },
+    { t: 'Long context, RAG, in-context learning, and tool use often achieve adaptation without modifying weights; fine-tuning (with LoRA + DPO) is reserved for cases where prompting cannot', c: true },
+    { t: 'Fine-tuning was shown to harm performance', c: false },
+    { t: 'Open-weight models can\'t be fine-tuned legally', c: false }
+  ], explain: 'In 2021, fine-tuning BERT was the default. Today the first move is prompt + RAG. Fine-tuning (LoRA + DPO) still essential for domain style, low-latency narrow tasks, embeddings.' },
+  { q: 'The scaling-laws insight — and why it shaped 2026?', options: [
+    { t: 'GPUs double every 2 years', c: false },
+    { t: 'Loss falls predictably as a power law in model size, data, and compute — capability gains from scale were forecastable, justifying enormous capex', c: true },
+    { t: 'Bigger models always overfit', c: false },
+    { t: 'You need 10× more data per 10× more params', c: false }
+  ], explain: 'Kaplan (2020) and Chinchilla (2022) showed loss as a smooth power law in compute/data/params. The whole industry bet billions on continuing this curve. Now debating whether it\'s bending and whether inference-time scaling is the new axis.' }
+];
+
+// ============================================================================
+// RENDER: status bar
+// ============================================================================
+function renderStatusBar() {
+  const done = Object.keys(state.done).filter(k => state.done[k]).length;
+  document.getElementById('curr-done').textContent = done;
+  document.getElementById('curr-total').textContent = totalResources;
+  document.getElementById('curr-bar').style.width = (totalResources ? (done/totalResources*100) : 0) + '%';
+
+  document.getElementById('streak-val').innerHTML = `<span class="streak-flame">▲</span> ${state.streak.current}<span class="small"> day${state.streak.current === 1 ? '' : 's'}</span>`;
+  document.getElementById('note-count').textContent = Object.keys(state.notes).filter(k => state.notes[k]).length;
+
+  const pct = state.quiz.count ? Math.round(state.quiz.score / state.quiz.count * 100) : 0;
+  document.getElementById('quiz-score').innerHTML = `${pct}<span class="small">%</span>`;
+  document.getElementById('quiz-count').textContent = state.quiz.count;
+
+  const heat = document.getElementById('heatmap');
+  heat.innerHTML = '';
+  const today = todayKey();
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    const count = state.streak.history[key] || 0;
+    const lvl = count >= 3 ? 2 : count >= 1 ? 1 : 0;
+    const cell = document.createElement('div');
+    cell.className = 'heat-cell' + (key === today ? ' today' : '');
+    cell.dataset.active = lvl;
+    cell.title = `${key}: ${count} action${count===1?'':'s'}`;
+    heat.appendChild(cell);
+  }
+}
+
+// ============================================================================
+// RENDER: concepts
+// ============================================================================
+function renderConcepts() {
+  const list = document.getElementById('concept-list');
+  list.innerHTML = concepts.map(c => `
+    <div class="hit ${state.concepts[c.id] ? 'done' : ''}" data-cid="${c.id}">
+      <button class="check" aria-label="Mark concept done"></button>
+      <div class="hit-body"><div class="tag">${c.tag}</div><h4>${c.title}</h4><p>${c.body}</p></div>
+    </div>`).join('');
+  list.querySelectorAll('.hit').forEach(el => {
+    el.onclick = () => {
+      const cid = el.dataset.cid;
+      state.concepts[cid] = !state.concepts[cid];
+      el.classList.toggle('done', state.concepts[cid]);
+      saveState();
+      markActivity();
+      if (state.concepts[cid]) showToast(`✓ ${concepts.find(c=>c.id===cid).title}`);
+    };
+  });
+}
+
+// ============================================================================
+// RENDER: curriculum
+// ============================================================================
+let activeEpoch = epochs.length - 1;
+
+function renderEpochTabs() {
+  const tabs = document.getElementById('epoch-tabs');
+  tabs.innerHTML = '';
+  epochs.forEach((e, i) => {
+    const total = e.resources.length;
+    const done = e.resources.filter(r => state.done[r.id]).length;
+    const btn = document.createElement('button');
+    btn.className = 'epoch-tab' + (i === activeEpoch ? ' active' : '');
+    btn.innerHTML = `<span class="year">${e.year}</span>${e.label}<span class="epoch-progress">${done}/${total}</span>`;
+    btn.onclick = () => { activeEpoch = i; renderEpochTabs(); renderEpoch(); };
+    tabs.appendChild(btn);
+  });
+}
+
+function renderEpoch() {
+  const e = epochs[activeEpoch];
+  const typeLabels = { paper: 'paper', blog: 'essay', video: 'talk' };
+  const content = document.getElementById('epoch-content');
+  content.innerHTML = `
+    <h3>${e.title}</h3>
+    <p class="epoch-summary">${e.summary}</p>
+    <div class="resource-list">
+      ${e.resources.map(r => {
+        const isDone = !!state.done[r.id];
+        const hasNote = !!state.notes[r.id];
+        const isSaved = state.saved.some(s => s.id === r.id);
+        return `
+        <div class="resource ${isDone ? 'done' : ''} ${hasNote ? 'has-note' : ''}" data-rid="${r.id}">
+          <button class="check" aria-label="Mark done"></button>
+          <span class="type ${r.type}">${typeLabels[r.type] || r.type}</span>
+          <div class="body">
+            <h4><a href="${r.url}" target="_blank" rel="noopener" onclick="markActivity()">${r.title}</a></h4>
+            <p>${r.author} — ${r.note}</p>
+            <div class="note-line">"${hasNote ? escapeHtml(state.notes[r.id]) : ''}"</div>
+          </div>
+          <div class="actions">
+            <button class="mini-btn note-btn" title="Add note">✎</button>
+            <button class="mini-btn save-btn ${isSaved ? 'saved' : ''}" title="Save">${isSaved ? '★' : '☆'}</button>
+            <span class="duration">${r.duration}</span>
+          </div>
+        </div>`;}).join('')}
+    </div>`;
+
+  content.querySelectorAll('.resource .check').forEach(btn => {
+    btn.onclick = (ev) => {
+      ev.stopPropagation();
+      const row = btn.closest('.resource');
+      const rid = row.dataset.rid;
+      state.done[rid] = !state.done[rid];
+      row.classList.toggle('done', state.done[rid]);
+      saveState(); markActivity();
+      renderStatusBar(); renderEpochTabs();
+      if (state.done[rid]) {
+        const r = allResources.find(x => x.id === rid);
+        showToast(`✓ ${r.title.slice(0, 50)}${r.title.length > 50 ? '…' : ''}`);
+        const done = Object.keys(state.done).filter(k => state.done[k]).length;
+        if ([1,5,10,15,20].includes(done)) {
+          document.getElementById('curr-done').classList.add('celebrate');
+          setTimeout(() => document.getElementById('curr-done').classList.remove('celebrate'), 700);
+          showToast(`★ ${done} RESOURCES COMPLETED`);
+        }
+      }
+    };
+  });
+  content.querySelectorAll('.note-btn').forEach(btn => {
+    btn.onclick = (ev) => { ev.stopPropagation(); const row = btn.closest('.resource'); const r = allResources.find(x => x.id === row.dataset.rid); openNote(row.dataset.rid, r.title); };
+  });
+  content.querySelectorAll('.save-btn').forEach(btn => {
+    btn.onclick = (ev) => { ev.stopPropagation(); const row = btn.closest('.resource'); toggleSave(row.dataset.rid); };
+  });
+}
+
+// ============================================================================
+// NOTES
+// ============================================================================
+let currentNoteId = null;
+function openNote(id, title) {
+  currentNoteId = id;
+  document.getElementById('note-title').textContent = 'Note on:';
+  document.getElementById('note-sub').textContent = title;
+  document.getElementById('note-text').value = state.notes[id] || '';
+  document.getElementById('note-modal').classList.add('open');
+  setTimeout(() => document.getElementById('note-text').focus(), 50);
+}
+function closeNote() { document.getElementById('note-modal').classList.remove('open'); currentNoteId = null; }
+function saveNote() {
+  if (!currentNoteId) return;
+  const text = document.getElementById('note-text').value.trim();
+  if (text) state.notes[currentNoteId] = text;
+  else delete state.notes[currentNoteId];
+  saveState(); markActivity();
+  renderEpoch(); renderSaved(); renderStatusBar();
+  showToast(text ? '✓ NOTE SAVED' : '✓ NOTE DELETED');
+  closeNote();
+}
+
+// ============================================================================
+// SAVE / BOOKMARK
+// ============================================================================
+function toggleSave(rid, externalItem) {
+  let item;
+  if (externalItem) item = externalItem;
+  else {
+    const r = allResources.find(x => x.id === rid);
+    if (!r) return;
+    item = { id: rid, title: r.title, url: r.url, source: `Curriculum · ${r.epoch}` };
+  }
+  const existing = state.saved.findIndex(s => s.id === item.id);
+  if (existing >= 0) { state.saved.splice(existing, 1); showToast('☆ REMOVED'); }
+  else { state.saved.unshift({ ...item, savedAt: new Date().toISOString() }); showToast('★ SAVED'); }
+  saveState(); markActivity();
+  renderEpoch(); renderFeeds(); renderSaved();
+}
+function renderSaved() {
+  const view = document.getElementById('saved-view');
+  if (!state.saved.length) { view.innerHTML = `<div class="saved-empty">Nothing saved yet. Click ☆ on any feed item or curriculum resource.</div>`; return; }
+  view.innerHTML = state.saved.map(s => `
+    <div class="saved-item">
+      <div class="si-content">
+        <h4><a href="${s.url}" target="_blank" rel="noopener">${escapeHtml(s.title)}</a></h4>
+        <div class="si-meta">${escapeHtml(s.source)} · saved ${new Date(s.savedAt).toLocaleDateString('en-GB', {day:'2-digit', month:'short'})}</div>
+        ${state.notes[s.id] ? `<div class="si-note">"${escapeHtml(state.notes[s.id])}"</div>` : ''}
       </div>
-    `;
+      <button class="si-remove" onclick="removeSaved('${s.id}')">remove</button>
+    </div>`).join('');
+}
+function removeSaved(id) {
+  state.saved = state.saved.filter(s => s.id !== id);
+  saveState(); renderSaved(); renderFeeds(); renderEpoch();
+  showToast('REMOVED');
+}
+
+// ============================================================================
+// DAILY PICK
+// ============================================================================
+const now = new Date();
+const startOfYear = new Date(now.getFullYear(), 0, 0);
+const dayOfYear = Math.floor((now - startOfYear) / 86400000);
+
+const pickPaper = [
+  { id: 'pp1', title: 'Attention Is All You Need', author: 'Vaswani et al.', url: 'https://arxiv.org/abs/1706.03762', meta: '15 pages' },
+  { id: 'pp2', title: 'DeepSeek-R1 Technical Report', author: 'DeepSeek AI', url: 'https://arxiv.org/abs/2501.12948', meta: 'reasoning · 50 pages' },
+  { id: 'pp3', title: 'Llama 3 Herd of Models', author: 'Meta AI', url: 'https://arxiv.org/abs/2407.21783', meta: 'training pipeline' },
+  { id: 'pp4', title: 'Direct Preference Optimization', author: 'Rafailov et al.', url: 'https://arxiv.org/abs/2305.18290', meta: 'alignment' },
+  { id: 'pp5', title: 'CLIP', author: 'Radford et al., OpenAI', url: 'https://arxiv.org/abs/2103.00020', meta: 'multimodal' },
+  { id: 'pp6', title: 'Sparks of AGI: GPT-4 experiments', author: 'Bubeck et al., MSR', url: 'https://arxiv.org/abs/2303.12712', meta: 'GPT-4 capabilities' },
+  { id: 'pp7', title: 'Mixtral of Experts', author: 'Mistral AI', url: 'https://arxiv.org/abs/2401.04088', meta: 'MoE · 13 pages' }
+];
+const pickEssay = [
+  { id: 'pe1', title: 'The Bitter Lesson', author: 'Rich Sutton', url: 'http://www.incompleteideas.net/IncIdeas/BitterLesson.html', meta: '5 min · most-cited essay' },
+  { id: 'pe2', title: 'Building effective agents', author: 'Anthropic', url: 'https://www.anthropic.com/research/building-effective-agents', meta: '30 min' },
+  { id: 'pe3', title: 'A Visual Guide to MoE', author: 'Maarten Grootendorst', url: 'https://newsletter.maartengrootendorst.com/p/a-visual-guide-to-mixture-of-experts', meta: '20 min' },
+  { id: 'pe4', title: 'GPU Glossary', author: 'Modal', url: 'https://modal.com/gpu-glossary', meta: '45 min' },
+  { id: 'pe5', title: 'Simon Willison\'s blog', author: 'Simon Willison', url: 'https://simonwillison.net/', meta: 'best LLM-watcher in 2026' },
+  { id: 'pe6', title: 'State of AI Report', author: 'Air Street Capital', url: 'https://www.stateof.ai/', meta: '1 hr' },
+  { id: 'pe7', title: 'Prompt Engineering Guide', author: 'DAIR.AI', url: 'https://www.promptingguide.ai/', meta: '1–2 hr' }
+];
+const pickTalk = [
+  { id: 'pt1', title: 'Deep Dive into LLMs like ChatGPT', author: 'Karpathy', url: 'https://www.youtube.com/watch?v=7xTGNNLPyMI', meta: '3h 30m' },
+  { id: 'pt2', title: "Let's build GPT", author: 'Karpathy', url: 'https://www.youtube.com/watch?v=kCc8FmEb1nY', meta: '2 hr' },
+  { id: 'pt3', title: 'State of GPT', author: 'Karpathy', url: 'https://www.youtube.com/watch?v=bZQun8Y4L2A', meta: '42 min' },
+  { id: 'pt4', title: 'How I use LLMs', author: 'Karpathy', url: 'https://www.youtube.com/watch?v=EWvNQjAaOHw', meta: '2h 7m' },
+  { id: 'pt5', title: 'AI: What Comes Next (TED)', author: 'Ray Kurzweil', url: 'https://www.ted.com/talks/ray_kurzweil_the_last_6_decades_of_ai_and_what_comes_next', meta: '15 min' },
+  { id: 'pt6', title: 'NeurIPS Test of Time', author: 'NeurIPS', url: 'https://www.youtube.com/@NeurIPSConf/videos', meta: 'varies' }
+];
+
+let pickOffset = 0;
+function renderDailyPick() {
+  const seed = pickOffset;
+  const p = pickPaper[(dayOfYear + seed) % pickPaper.length];
+  const e = pickEssay[(dayOfYear + seed + 2) % pickEssay.length];
+  const t = pickTalk[(dayOfYear + seed + 4) % pickTalk.length];
+  const slot = (label, item, sourceTag) => `
+    <div style="border: 1px solid var(--line); padding: 24px; background: var(--card-bg);">
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted-c); margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--line);">${label}</div>
+      <div style="font-family: 'Fraunces', serif; font-weight: 600; font-size: 22px; line-height: 1.2; margin-bottom: 8px;"><a href="${item.url}" target="_blank" rel="noopener" onclick="markActivity()" style="color: var(--fg); text-decoration: none;">${item.title}</a></div>
+      <p style="font-size: 14px; color: var(--fg-soft);">${item.author}</p>
+      <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted-c); margin-top: 10px; letter-spacing: 0.08em;">${item.meta}</div>
+      <div style="margin-top: 14px;"><button class="mini-btn" style="border-color: var(--line); color: var(--fg);" onclick='toggleSave("${item.id}", ${JSON.stringify({...item, source:sourceTag}).replace(/'/g, "&#39;")})'>★ save</button></div>
+    </div>`;
+  document.getElementById('daily-pick').innerHTML = `
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 24px;">
+      ${slot('One Paper', p, 'Daily Pick · Paper')}
+      ${slot('One Essay', e, 'Daily Pick · Essay')}
+      ${slot('One Talk', t, 'Daily Pick · Talk')}
+    </div>
+    <button class="reroll-btn" style="margin-top: 24px;" onclick="pickOffset++; renderDailyPick();">↻ Re-roll today's pick</button>`;
+}
+
+// ============================================================================
+// QUIZ
+// ============================================================================
+let quizIdx = 0;
+function pickQuizQuestion() {
+  const unanswered = quiz.map((_, i) => i).filter(i => !state.quiz.answered[i]);
+  if (unanswered.length) quizIdx = unanswered[Math.floor(Math.random() * unanswered.length)];
+  else quizIdx = Math.floor(Math.random() * quiz.length);
+}
+function renderQuiz() {
+  const q = quiz[quizIdx];
+  const previouslyAnswered = state.quiz.answered[quizIdx];
+  const shuffled = q.options.map((o, i) => ({...o, origIdx: i})).sort((a,b) => ((quizIdx + 7) * (a.origIdx + 3)) % 5 - ((quizIdx + 7) * (b.origIdx + 3)) % 5);
+  const pct = state.quiz.count ? Math.round(state.quiz.score / state.quiz.count * 100) : 0;
+  document.getElementById('quiz-card').innerHTML = `
+    <div class="quiz-header">
+      <span class="qnum">QUESTION ${quizIdx + 1} / ${quiz.length}${previouslyAnswered ? ' · DONE' : ''}</span>
+      <span class="qscore">SCORE: ${state.quiz.score}/${state.quiz.count} (${pct}%)</span>
+    </div>
+    <div class="quiz-q">${q.q}</div>
+    <div class="quiz-options" id="quiz-options">
+      ${shuffled.map(o => `<button class="quiz-option" data-correct="${o.c}">${escapeHtml(o.t)}</button>`).join('')}
+    </div>
+    <div class="quiz-explanation" id="quiz-explanation"><strong>Why:</strong> ${escapeHtml(q.explain)}</div>
+    <div class="quiz-controls">
+      <button class="reroll-btn" onclick="prevQuestion()">← previous</button>
+      <button class="reroll-btn" onclick="nextQuestion()">next →</button>
+    </div>`;
+  document.querySelectorAll('#quiz-options .quiz-option').forEach(btn => {
+    btn.onclick = () => {
+      const opts = document.querySelectorAll('#quiz-options .quiz-option');
+      opts.forEach(o => o.classList.add('revealed'));
+      const correctEl = Array.from(opts).find(o => o.dataset.correct === 'true');
+      if (btn.dataset.correct === 'true') { btn.classList.add('correct'); if (!previouslyAnswered) { state.quiz.score += 1; showToast('✓ CORRECT'); } }
+      else { btn.classList.add('wrong'); correctEl.classList.add('correct'); if (!previouslyAnswered) showToast('✗ NOT QUITE'); }
+      if (!previouslyAnswered) {
+        state.quiz.count += 1;
+        state.quiz.answered[quizIdx] = (btn.dataset.correct === 'true') ? 'correct' : 'wrong';
+        saveState(); markActivity(); renderStatusBar();
+      }
+      document.getElementById('quiz-explanation').classList.add('show');
+    };
+  });
+}
+function nextQuestion() { quizIdx = (quizIdx + 1) % quiz.length; renderQuiz(); }
+function prevQuestion() { quizIdx = (quizIdx - 1 + quiz.length) % quiz.length; renderQuiz(); }
+
+// ============================================================================
+// FEEDS — render the daily-baked data
+// ============================================================================
+let activeFilter = 'all';
+const FEED_COLS = [
+  { key: 'arxiv', title: 'arXiv · cs.LG / cs.CL / cs.AI' },
+  { key: 'hn', title: 'Hacker News · AI' },
+  { key: 'researchers', title: 'Researchers' },
+  { key: 'labs', title: 'Labs' },
+  { key: 'substacks', title: 'Substacks' },
+  { key: 'conferences', title: 'Conferences' }
+];
+
+function renderFeeds() {
+  const grid = document.getElementById('feeds-grid');
+  grid.innerHTML = FEED_COLS.map(col => {
+    const items = (FEED_DATA[col.key] || []);
+    const filtered = activeFilter === 'all' ? items : items.filter(it => (it.tags || []).includes(activeFilter));
+    let body;
+    if (!items.length) body = `<div class="empty-state">Feed unavailable at build time.</div>`;
+    else if (!filtered.length) body = `<div class="empty-state">No items match "${activeFilter}"</div>`;
+    else body = filtered.map(it => {
+      const isSaved = state.saved.some(s => s.id === it.id);
+      const tagStr = (it.tags || []).length ? ' · ' + it.tags.map(t => t.toUpperCase()).join(' · ') : '';
+      const metaStr = it.meta ? ` · ${it.meta}` : '';
+      return `<div class="feed-item">
+        <button class="save-btn ${isSaved ? 'saved' : ''}" onclick='toggleSave("${it.id}", ${JSON.stringify(it).replace(/'/g, "&#39;")})' title="${isSaved ? 'Saved' : 'Save'}">${isSaved ? '★' : '☆'}</button>
+        <div class="content">
+          <a href="${it.url}" target="_blank" rel="noopener" onclick="markActivity()">
+            <h4>${escapeHtml(it.title)}</h4>
+            <div class="meta-line">${it.date || ''} · ${escapeHtml(it.source)}${metaStr}${tagStr}</div>
+          </a>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="feed-col">
+      <div class="feed-col-head"><h3>${col.title}</h3><span class="count">${filtered.length}/${items.length}</span></div>
+      ${body}
+    </div>`;
   }).join('');
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function bindFilters() {
+  document.querySelectorAll('.pill').forEach(p => {
+    p.onclick = () => {
+      document.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
+      p.classList.add('active');
+      activeFilter = p.dataset.filter;
+      renderFeeds();
+    };
+  });
 }
 
-let activeFilter = 'all';
-function renderAll() {
-  renderFeed('arxiv-feed', DATA.arxiv || [], 'arxiv-count');
-  renderFeed('hn-feed', DATA.hn || [], 'hn-count');
-  renderFeed('blog-feed', DATA.blogs || [], 'blog-count');
-}
+// ============================================================================
+// COMMAND PALETTE
+// ============================================================================
+let paletteIdx = 0;
+const paletteOverlay = document.getElementById('palette-overlay');
+const paletteInput = document.getElementById('palette-input');
+const paletteResults = document.getElementById('palette-results');
 
-document.querySelectorAll('.pill').forEach(p => {
-  p.onclick = () => {
-    document.querySelectorAll('.pill').forEach(x => x.classList.remove('active'));
-    p.classList.add('active');
-    activeFilter = p.dataset.filter;
-    renderAll();
-  };
+function buildPaletteIndex() {
+  const idx = [];
+  ['brief','feeds','curriculum','daily','quiz','saved','access'].forEach(s => {
+    const titles = { brief: 'Today\'s Brief', feeds: 'Live Wire', curriculum: 'The Catch-Up', daily: 'Deep Dive', quiz: 'Quiz Yourself', saved: 'Saved & Notes', access: 'Take It Anywhere' };
+    idx.push({ type: 'section', title: titles[s], loc: '§' + s, action: () => { jumpTo(s); closePalette(); } });
+  });
+  allResources.forEach(r => idx.push({
+    type: r.type, title: r.title, loc: `Curriculum · ${r.epoch}`,
+    search: (r.title + ' ' + r.author + ' ' + r.note + ' ' + r.epoch).toLowerCase(),
+    action: () => { window.open(r.url, '_blank'); closePalette(); markActivity(); }
+  }));
+  [...pickPaper, ...pickEssay, ...pickTalk].forEach(p => idx.push({
+    type: 'pick', title: p.title, loc: 'Daily Pick',
+    search: (p.title + ' ' + p.author).toLowerCase(),
+    action: () => { window.open(p.url, '_blank'); closePalette(); markActivity(); }
+  }));
+  // Feed items from today's build are searchable too
+  Object.keys(FEED_DATA).forEach(k => {
+    if (Array.isArray(FEED_DATA[k])) {
+      FEED_DATA[k].forEach(it => idx.push({
+        type: k, title: it.title, loc: it.source,
+        search: ((it.title || '') + ' ' + (it.source || '')).toLowerCase(),
+        action: () => { window.open(it.url, '_blank'); closePalette(); markActivity(); }
+      }));
+    }
+  });
+  state.saved.forEach(s => idx.push({
+    type: 'saved', title: s.title, loc: s.source,
+    search: (s.title + ' ' + s.source).toLowerCase(),
+    action: () => { window.open(s.url, '_blank'); closePalette(); markActivity(); }
+  }));
+  concepts.forEach(c => idx.push({
+    type: 'concept', title: c.title, loc: 'Today\'s Brief',
+    search: (c.title + ' ' + c.body).toLowerCase(),
+    action: () => { jumpTo('brief'); closePalette(); }
+  }));
+  return idx;
+}
+function openPalette() { paletteOverlay.classList.add('open'); paletteInput.value = ''; paletteInput.focus(); renderPalette(''); }
+function closePalette() { paletteOverlay.classList.remove('open'); }
+function renderPalette(q) {
+  const idx = buildPaletteIndex();
+  const ql = q.trim().toLowerCase();
+  const results = ql
+    ? idx.filter(i => (i.search || (i.title + ' ' + i.loc).toLowerCase()).includes(ql)).slice(0, 25)
+    : idx.slice(0, 25);
+  paletteIdx = 0;
+  if (!results.length) { paletteResults.innerHTML = `<div style="padding: 30px 20px; text-align: center; font-family: monospace; font-size: 11px; color: var(--muted-c); letter-spacing: 0.15em;">NO MATCH</div>`; return; }
+  paletteResults.innerHTML = results.map((r, i) => `
+    <div class="palette-result ${i === 0 ? 'selected' : ''}" data-idx="${i}">
+      <span class="ptype">${r.type}</span>
+      <span class="ptitle">${escapeHtml(r.title)}</span>
+      <span class="ploc">${escapeHtml(r.loc)}</span>
+    </div>`).join('');
+  paletteResults.querySelectorAll('.palette-result').forEach(el => {
+    el.onmouseover = () => { paletteResults.querySelectorAll('.palette-result').forEach(x => x.classList.remove('selected')); el.classList.add('selected'); paletteIdx = parseInt(el.dataset.idx); };
+    el.onclick = () => results[parseInt(el.dataset.idx)].action();
+  });
+  paletteResults._results = results;
+}
+paletteInput.addEventListener('input', e => renderPalette(e.target.value));
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); paletteOverlay.classList.contains('open') ? closePalette() : openPalette(); return; }
+  if (!paletteOverlay.classList.contains('open')) return;
+  if (e.key === 'Escape') { closePalette(); return; }
+  const items = paletteResults.querySelectorAll('.palette-result');
+  if (!items.length) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); paletteIdx = (paletteIdx + 1) % items.length; items.forEach(x => x.classList.remove('selected')); items[paletteIdx].classList.add('selected'); items[paletteIdx].scrollIntoView({ block: 'nearest' }); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); paletteIdx = (paletteIdx - 1 + items.length) % items.length; items.forEach(x => x.classList.remove('selected')); items[paletteIdx].classList.add('selected'); items[paletteIdx].scrollIntoView({ block: 'nearest' }); }
+  else if (e.key === 'Enter') { e.preventDefault(); if (paletteResults._results && paletteResults._results[paletteIdx]) paletteResults._results[paletteIdx].action(); }
 });
 
-function toggleTheme() {
-  const cur = document.body.getAttribute('data-theme');
-  const next = cur === 'dark' ? 'light' : 'dark';
-  document.body.setAttribute('data-theme', next);
-  document.getElementById('theme-btn').textContent = next.toUpperCase();
-  try { localStorage.setItem('fn-theme', next); } catch (e) {}
+// ============================================================================
+// UTILITIES
+// ============================================================================
+function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(t._timer); t._timer = setTimeout(() => t.classList.remove('show'), 2200); }
+function jumpTo(id) { if (!id) return; document.getElementById(id).scrollIntoView({ behavior: 'smooth' }); document.getElementById('toc-jump').value = ''; }
+function toggleTheme() { const cur = document.body.getAttribute('data-theme'); const next = cur === 'dark' ? 'light' : 'dark'; document.body.setAttribute('data-theme', next); document.getElementById('theme-btn').textContent = next.toUpperCase(); try { localStorage.setItem('fn-theme', next); } catch (e) {} }
+function showFeeds() {
+  const feeds = ['arXiv cs.LG: https://export.arxiv.org/rss/cs.LG','arXiv cs.CL: https://export.arxiv.org/rss/cs.CL','Google Research: https://research.google/blog/rss/','The Decoder: https://the-decoder.com/feed/','Hugging Face: https://huggingface.co/blog/feed.xml','Simon Willison: https://simonwillison.net/atom/everything/','Hacker News AI: https://hnrss.org/newest?q=AI+OR+LLM+OR+GPT','Sebastian Raschka: https://magazine.sebastianraschka.com/feed','Interconnects: https://www.interconnects.ai/feed','Lil\'Log: https://lilianweng.github.io/index.xml','Import AI: https://importai.substack.com/feed','AI Snake Oil: https://www.aisnakeoil.com/feed'].join('\n');
+  navigator.clipboard.writeText(feeds).then(() => showToast('✓ FEED URLS COPIED'), () => prompt('Copy these feed URLs:', feeds));
 }
-try {
-  const saved = localStorage.getItem('fn-theme');
-  if (saved) {
-    document.body.setAttribute('data-theme', saved);
-    document.getElementById('theme-btn').textContent = saved.toUpperCase();
-  }
-} catch (e) {}
+function copyPrompt() {
+  const promptText = `You are my AI research briefer. I have an ML/CV background from before 2021 catching up on the last 4 years. Focus: LLMs, multimodal, agents/RL, applied ML. I have 60+ minutes daily.\n\nGive me today's briefing:\n1. ONE major thing in the last 7 days (with primary source — use web_search)\n2. ONE concept from 2021–2026 I probably haven't internalized, in 3 paragraphs\n3. ONE paper/blog/video for today's hour with a one-sentence reason\n4. ONE concrete question to think about while reading\n\nBe concise. Date: ${new Date().toLocaleDateString('en-GB', { day:'2-digit', month:'long', year:'numeric' })}.`;
+  navigator.clipboard.writeText(promptText).then(() => showToast('✓ PROMPT COPIED'), () => prompt('Copy this prompt:', promptText));
+}
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `field-notes-export-${todayKey()}.json`; a.click();
+  URL.revokeObjectURL(url); showToast('✓ EXPORTED');
+}
+function resetAll() {
+  if (!confirm('Wipe all progress, notes, saved items, streak, and quiz scores? Cannot be undone.')) return;
+  state = { done: {}, notes: {}, saved: [], concepts: {}, quiz: { score: 0, count: 0, answered: {} }, streak: { current: 0, lastVisit: null, history: {} } };
+  saveState(); renderAll(); showToast('✓ RESET');
+}
 
-renderAll();
+function renderAll() {
+  renderConcepts(); renderEpochTabs(); renderEpoch();
+  renderDailyPick(); pickQuizQuestion(); renderQuiz();
+  renderSaved(); renderStatusBar(); bindFilters(); renderFeeds();
+}
+
+// ============================================================================
+// INIT
+// ============================================================================
+document.getElementById('built-at').textContent = BUILT_AT;
+document.getElementById('footer-time').textContent = BUILT_AT;
+
+document.getElementById('note-modal').addEventListener('click', e => { if (e.target.id === 'note-modal') closeNote(); });
+document.getElementById('sync-modal').addEventListener('click', e => { if (e.target.id === 'sync-modal') closeSync(); });
+document.getElementById('palette-overlay').addEventListener('click', e => { if (e.target.id === 'palette-overlay') closePalette(); });
+
+(async () => {
+  try { const saved = localStorage.getItem('fn-theme'); if (saved) { document.body.setAttribute('data-theme', saved); document.getElementById('theme-btn').textContent = saved.toUpperCase(); } } catch (e) {}
+  loadStateLocal();
+  setSyncBadge(false);
+  // If sync is configured, attempt a pull on load
+  if (syncConfig.enabled) await pullFromCloud();
+  updateStreak();
+  renderAll();
+})();
 </script>
 
 </body>

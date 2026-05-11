@@ -1,0 +1,20 @@
+# Cloudflare Wrangler config for the Field Notes sync worker.
+# After `npm create cloudflare@latest` or running `wrangler` in this folder,
+# wrangler reads this file to know how to deploy.
+#
+# To set up:
+#   1. Install: npm install -g wrangler
+#   2. Log in: wrangler login
+#   3. Create a KV namespace: wrangler kv namespace create STATE_KV
+#      (This prints a namespace ID — paste it below where it says REPLACE_ME.)
+#   4. Deploy: wrangler deploy
+#   5. Your worker URL will be printed (something like https://field-notes-sync.YOUR-NAME.workers.dev)
+#   6. Paste that URL + a sync code into the dashboard's SYNC button.
+
+name = "field-notes-sync"
+main = "index.js"
+compatibility_date = "2024-09-25"
+
+[[kv_namespaces]]
+binding = "STATE_KV"
+id = "REPLACE_ME_WITH_NAMESPACE_ID_FROM_WRANGLER"

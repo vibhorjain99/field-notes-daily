@@ -1,12 +1,11 @@
 """
-Field Notes — daily builder
+Field Notes — daily builder (v2)
 Fetches RSS/Atom feeds + arXiv + Hacker News, renders docs/index.html.
 
-Runs on GitHub Actions every morning. Designed to be boring and reliable:
-- Each feed has its own try/except so one failure doesn't kill the build.
-- Items are tagged with topic labels for the front-end filter pills.
-- The generated HTML embeds the data as JSON so the page loads instantly
-  (no client-side fetching, no CORS proxies, no flicker).
+Changes vs v1:
+- Many more feeds: researchers, conferences, Substacks
+- Per-source cap (no single blogger floods the page)
+- Generates a build-summary text file for the email notification
 """
 
 import feedparser
@@ -23,10 +22,11 @@ from html import escape
 HERE = Path(__file__).parent
 TEMPLATE = HERE / "template.html"
 OUTPUT = HERE / "docs" / "index.html"
-MAX_PER_FEED = 15
+SUMMARY_FILE = HERE / "build_summary.txt"  # consumed by the email step
 
-# Topic-tag rules — same heuristic as the original dashboard.
-# Lowercased keyword → list of tag IDs the front-end filter pills use.
+MAX_PER_FEED = 20         # total items per feed column shown on the page
+PER_SOURCE_CAP = 3        # blog column: max items per individual source
+
 TAG_RULES = {
     "llm": r"\b(llm|gpt|claude|gemini|llama|mistral|qwen|deepseek|language model|"
            r"transformer|fine-tun|rlhf|dpo|moe|mixture-of-experts|reasoning)\b",
@@ -38,13 +38,39 @@ TAG_RULES = {
                r"throughput|enterprise|industry|benchmark|eval|cost|gpu)\b",
 }
 
-# Blog/research feeds — easy to add more, just append a (name, url) tuple.
-BLOG_FEEDS = [
+# Research labs & company blogs
+LAB_FEEDS = [
     ("Google Research", "https://research.google/blog/rss/"),
-    ("The Decoder", "https://the-decoder.com/feed/"),
     ("Hugging Face", "https://huggingface.co/blog/feed.xml"),
-    ("Simon Willison", "https://simonwillison.net/atom/everything/"),
     ("Anthropic News", "https://www.anthropic.com/news/rss.xml"),
+    ("The Decoder", "https://the-decoder.com/feed/"),
+]
+
+# Individual researchers / writers — the dense, opinionated ones
+RESEARCHER_FEEDS = [
+    ("Simon Willison", "https://simonwillison.net/atom/everything/"),
+    ("Sebastian Raschka", "https://magazine.sebastianraschka.com/feed"),
+    ("Nathan Lambert (Interconnects)", "https://www.interconnects.ai/feed"),
+    ("Lil'Log (Lilian Weng)", "https://lilianweng.github.io/index.xml"),
+    ("Andrej Karpathy", "https://karpathy.github.io/feed.xml"),
+    # Daniel Han / Unsloth doesn't have a tracked blog feed; we use the
+    # Unsloth blog as a proxy since Daniel writes a lot of it.
+    ("Unsloth (Daniel Han)", "https://unsloth.ai/blog/rss.xml"),
+]
+
+# Substacks — long-form analysis
+SUBSTACK_FEEDS = [
+    ("Import AI (Jack Clark)", "https://importai.substack.com/feed"),
+    ("AI Snake Oil", "https://www.aisnakeoil.com/feed"),
+]
+
+# Conferences — pulls arXiv listings tagged with the conference
+# (We use arXiv for these since NeurIPS/ICML/ICLR don't expose RSS for accepted papers.)
+CONF_QUERIES = [
+    ("NeurIPS / ICML / ICLR (arXiv)",
+     "https://export.arxiv.org/api/query?"
+     "search_query=cat:cs.LG+AND+(abs:NeurIPS+OR+abs:ICML+OR+abs:ICLR)"
+     "&sortBy=submittedDate&sortOrder=descending&max_results=10"),
 ]
 
 ARXIV_URL = (
@@ -56,33 +82,56 @@ ARXIV_URL = (
 HN_QUERIES = ["AI", "LLM", "GPT", "Claude", "agent"]
 HN_URL = "https://hn.algolia.com/api/v1/search?query={q}&tags=story&hitsPerPage=8"
 
-
 # ---------------------------------------------------------------------------
 # HELPERS
 # ---------------------------------------------------------------------------
 def tag_text(text: str) -> list[str]:
-    """Return the topic tags that match in the given text."""
     t = (text or "").lower()
     return [tag for tag, pattern in TAG_RULES.items() if re.search(pattern, t)]
 
 
-def safe_date(s: str) -> str:
-    """Best-effort date parsing → YYYY-MM-DD, blank if it can't parse."""
-    if not s:
+def safe_date(struct_time) -> str:
+    if not struct_time:
         return ""
     try:
-        # feedparser already normalizes most date strings into struct_time
-        return datetime(*s[:6]).strftime("%Y-%m-%d")
+        return datetime(*struct_time[:6]).strftime("%Y-%m-%d")
     except Exception:
         return ""
 
 
+def parse_feed(name: str, url: str, cap: int = PER_SOURCE_CAP) -> list[dict]:
+    """Generic Atom/RSS parser with per-source cap and tag inference."""
+    items = []
+    try:
+        feed = feedparser.parse(url)
+        count = 0
+        for entry in feed.entries[:cap]:
+            title = entry.title.strip() if hasattr(entry, "title") else ""
+            link = entry.link if hasattr(entry, "link") else "#"
+            date = ""
+            if hasattr(entry, "published_parsed") and entry.published_parsed:
+                date = safe_date(entry.published_parsed)
+            elif hasattr(entry, "updated_parsed") and entry.updated_parsed:
+                date = safe_date(entry.updated_parsed)
+            items.append({
+                "id": f"src:{name}:{link[-50:]}",
+                "title": title,
+                "url": link,
+                "date": date,
+                "source": name,
+                "tags": tag_text(title),
+            })
+            count += 1
+        print(f"  {name}: {count} posts")
+    except Exception as e:
+        print(f"  {name} FAILED: {e}")
+    return items
+
+
 # ---------------------------------------------------------------------------
-# FETCHERS — each returns a list of dicts: {id, title, url, date, source, tags, meta?}
-# Each is wrapped in try/except so a single broken feed doesn't kill the build.
+# FETCHERS
 # ---------------------------------------------------------------------------
 def fetch_arxiv() -> list[dict]:
-    """Pull the most recent cs.LG / cs.CL / cs.AI preprints from arXiv."""
     items = []
     try:
         feed = feedparser.parse(ARXIV_URL)
@@ -103,8 +152,29 @@ def fetch_arxiv() -> list[dict]:
     return items
 
 
+def fetch_conferences() -> list[dict]:
+    items = []
+    for name, url in CONF_QUERIES:
+        try:
+            feed = feedparser.parse(url)
+            for entry in feed.entries[:10]:
+                title = entry.title.replace("\n", " ").strip()
+                summary = (entry.summary if hasattr(entry, "summary") else "").replace("\n", " ")
+                items.append({
+                    "id": "conf:" + entry.id.split("/")[-1],
+                    "title": title,
+                    "url": entry.link,
+                    "date": safe_date(entry.published_parsed) if hasattr(entry, "published_parsed") else "",
+                    "source": name,
+                    "tags": tag_text(title + " " + summary),
+                })
+            print(f"  {name}: {len([i for i in items if i['source']==name])} papers")
+        except Exception as e:
+            print(f"  {name} FAILED: {e}")
+    return items
+
+
 def fetch_hn() -> list[dict]:
-    """Pull top AI-related Hacker News stories via Algolia's public API."""
     seen, items = set(), []
     try:
         for q in HN_QUERIES:
@@ -135,53 +205,31 @@ def fetch_hn() -> list[dict]:
     return items
 
 
-def fetch_blogs() -> list[dict]:
-    """Pull recent posts from research/industry blogs."""
-    items = []
-    for name, url in BLOG_FEEDS:
-        try:
-            feed = feedparser.parse(url)
-            count = 0
-            for entry in feed.entries[:4]:
-                title = entry.title.strip() if hasattr(entry, "title") else ""
-                link = entry.link if hasattr(entry, "link") else "#"
-                date = ""
-                if hasattr(entry, "published_parsed") and entry.published_parsed:
-                    date = safe_date(entry.published_parsed)
-                elif hasattr(entry, "updated_parsed") and entry.updated_parsed:
-                    date = safe_date(entry.updated_parsed)
-                items.append({
-                    "id": f"blog:{name}:{link[-40:]}",
-                    "title": title,
-                    "url": link,
-                    "date": date,
-                    "source": name,
-                    "tags": tag_text(title),
-                })
-                count += 1
-            print(f"  {name}: {count} posts")
-        except Exception as e:
-            print(f"  {name} FAILED: {e}")
-    items.sort(key=lambda x: x.get("date") or "", reverse=True)
-    return items[:MAX_PER_FEED]
-
-
-# ---------------------------------------------------------------------------
-# RENDER
-# ---------------------------------------------------------------------------
-def render(arxiv: list, hn: list, blogs: list) -> str:
-    """Read template.html and replace placeholders with JSON + timestamp."""
-    template = TEMPLATE.read_text(encoding="utf-8")
-    payload = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
-        "arxiv": arxiv,
-        "hn": hn,
-        "blogs": blogs,
+def fetch_blogs_combined() -> dict:
+    """Returns a dict with three blog buckets so the UI can show them separately."""
+    labs, researchers, substacks = [], [], []
+    for name, url in LAB_FEEDS:
+        labs.extend(parse_feed(name, url))
+    for name, url in RESEARCHER_FEEDS:
+        researchers.extend(parse_feed(name, url))
+    for name, url in SUBSTACK_FEEDS:
+        substacks.extend(parse_feed(name, url))
+    # Sort each bucket by date desc, then cap
+    for bucket in (labs, researchers, substacks):
+        bucket.sort(key=lambda x: x.get("date") or "", reverse=True)
+    return {
+        "labs": labs[:MAX_PER_FEED],
+        "researchers": researchers[:MAX_PER_FEED],
+        "substacks": substacks[:MAX_PER_FEED],
     }
-    # Embed as a JSON string assigned to window.__FEED_DATA__
-    # — safer than templating individual fields and lets the page render instantly.
-    json_blob = json.dumps(payload, ensure_ascii=False)
-    # Escape </script> so a malicious title can't break out of the script tag
+
+
+# ---------------------------------------------------------------------------
+# RENDER + SUMMARY
+# ---------------------------------------------------------------------------
+def render(data: dict) -> str:
+    template = TEMPLATE.read_text(encoding="utf-8")
+    json_blob = json.dumps(data, ensure_ascii=False)
     json_blob = json_blob.replace("</", "<\\/")
     template = template.replace("__FEED_DATA__", json_blob)
     template = template.replace(
@@ -191,21 +239,65 @@ def render(arxiv: list, hn: list, blogs: list) -> str:
     return template
 
 
-# ---------------------------------------------------------------------------
-# MAIN
-# ---------------------------------------------------------------------------
+def write_summary(data: dict) -> None:
+    """Plain-text digest used by the email notification step."""
+    lines = []
+    lines.append(f"Field Notes — daily build")
+    lines.append(f"Built: {datetime.now(timezone.utc).strftime('%d %b %Y · %H:%M UTC')}")
+    lines.append("")
+
+    def section(title, items, max_show=5):
+        if not items:
+            return
+        lines.append(f"━━ {title} ({len(items)} total, showing {min(max_show, len(items))}) ━━")
+        for it in items[:max_show]:
+            lines.append(f"• {it['title']}")
+            lines.append(f"  {it.get('source','')} · {it.get('date','')}")
+            lines.append(f"  {it['url']}")
+            lines.append("")
+
+    section("ARXIV — TODAY'S TOP PREPRINTS", data.get("arxiv", []), 5)
+    section("HACKER NEWS — TOP AI STORIES", data.get("hn", []), 5)
+    section("RESEARCHERS", data.get("researchers", []), 4)
+    section("LABS", data.get("labs", []), 3)
+    section("SUBSTACKS", data.get("substacks", []), 3)
+    section("CONFERENCES (NeurIPS/ICML/ICLR)", data.get("conferences", []), 3)
+
+    lines.append("")
+    lines.append("Open the dashboard for interactive features:")
+    lines.append("(replace with your GitHub Pages URL after first deploy)")
+
+    SUMMARY_FILE.write_text("\n".join(lines), encoding="utf-8")
+    print(f"Wrote summary: {SUMMARY_FILE}")
+
+
 def main():
     print(f"Build started at {datetime.now(timezone.utc).isoformat()}")
     print("Fetching feeds:")
     arxiv = fetch_arxiv()
     hn = fetch_hn()
-    blogs = fetch_blogs()
-    print(f"Total items: {len(arxiv) + len(hn) + len(blogs)}")
+    blogs = fetch_blogs_combined()
+    conferences = fetch_conferences()
 
-    html = render(arxiv, hn, blogs)
+    data = {
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "arxiv": arxiv,
+        "hn": hn,
+        "labs": blogs["labs"],
+        "researchers": blogs["researchers"],
+        "substacks": blogs["substacks"],
+        "conferences": conferences,
+    }
+
+    total = sum(len(data[k]) for k in ["arxiv", "hn", "labs", "researchers", "substacks", "conferences"])
+    print(f"Total items: {total}")
+
+    html = render(data)
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT.write_text(html, encoding="utf-8")
     print(f"Wrote {OUTPUT} ({len(html):,} bytes)")
+
+    write_summary(data)
 
 
 if __name__ == "__main__":
